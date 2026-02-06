@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "outDir": "./dist",
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "noEmit": false,
+    "typeRoots": ["./node_modules/@types", "./typechain-types"]
+  },
+  "include": [
+    "./scripts",
+    "./test",
+    "./typechain-types",
+    "./hardhat.config.ts"
+  ],
+  "files": [
+    "./node_modules/@nomicfoundation/hardhat-ethers/type-extensions.d.ts",
+    "./node_modules/@nomicfoundation/hardhat-chai-matchers/type-extensions.d.ts",
+    "./node_modules/@openzeppelin/hardhat-upgrades/type-extensions.d.ts"
+  ]
+}
