@@ -17,18 +17,20 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      // Local Hardhat Network for testing
+      // Local Hardhat Network for testing and coverage
     },
-    polygonAmoy: {
-      url: process.env.POLYGON_AMOY_RPC_URL || "",
-      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-      chainId: 80002, // Chain ID for Polygon Amoy Testnet
-    },
-    polygonMainnet: {
-      url: process.env.POLYGON_MAINNET_RPC_URL || "",
-      accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-      chainId: 137, // Chain ID for Polygon Mainnet
-    },
+    // Temporarily removed polygonAmoy and polygonMainnet for local coverage to avoid private key validation issues.
+    // Uncomment and provide valid .env variables when deploying or testing on these networks.
+    // polygonAmoy: {
+    //   url: process.env.POLYGON_AMOY_RPC_URL || "",
+    //   accounts: (process.env.PRIVATE_KEY && process.env.PRIVATE_KEY !== "") ? [process.env.PRIVATE_KEY] : [],
+    //   chainId: 80002, // Chain ID for Polygon Amoy Testnet
+    // },
+    // polygonMainnet: {
+    //   url: process.env.POLYGON_MAINNET_RPC_URL || "",
+    //   accounts: (process.env.PRIVATE_KEY && process.env.PRIVATE_KEY !== "") ? [process.env.PRIVATE_KEY] : [],
+    //   chainId: 137, // Chain ID for Polygon Mainnet
+    // },
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
