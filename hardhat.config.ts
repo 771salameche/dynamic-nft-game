@@ -1,13 +1,19 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-ethers";
 import "@openzeppelin/hardhat-upgrades";
+import "@nomicfoundation/hardhat-verify";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "dotenv/config";
 
+// Ensure process.env.PRIVATE_KEY is only used if it's a non-empty string.
+const privateKeyAccounts = (process.env.PRIVATE_KEY && process.env.PRIVATE_KEY !== "")
+    ? [process.env.PRIVATE_KEY]
+    : undefined;
+
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.24", // Or the latest stable version you prefer
+    version: "0.8.24",
     settings: {
       optimizer: {
         enabled: true,
@@ -17,20 +23,34 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      // Local Hardhat Network for testing and coverage
+      // Local Hardhat Network
     },
-    // Temporarily removed polygonAmoy and polygonMainnet for local coverage to avoid private key validation issues.
-    // Uncomment and provide valid .env variables when deploying or testing on these networks.
-    // polygonAmoy: {
-    //   url: process.env.POLYGON_AMOY_RPC_URL || "",
-    //   accounts: (process.env.PRIVATE_KEY && process.env.PRIVATE_KEY !== "") ? [process.env.PRIVATE_KEY] : [],
-    //   chainId: 80002, // Chain ID for Polygon Amoy Testnet
-    // },
-    // polygonMainnet: {
-    //   url: process.env.POLYGON_MAINNET_RPC_URL || "",
-    //   accounts: (process.env.PRIVATE_KEY && process.env.PRIVATE_KEY !== "") ? [process.env.PRIVATE_KEY] : [],
-    //   chainId: 137, // Chain ID for Polygon Mainnet
-    // },
+    polygonAmoy: {
+      url: process.env.POLYGON_AMOY_RPC_URL || "",
+      accounts: privateKeyAccounts,
+      chainId: 80002,
+    },
+    polygonMainnet: {
+      url: process.env.POLYGON_MAINNET_RPC_URL || "",
+      accounts: privateKeyAccounts,
+      chainId: 137,
+    },
+  },
+  etherscan: {
+    apiKey: {
+      polygon: process.env.POLYGONSCAN_API_KEY || "",
+      polygonAmoy: process.env.POLYGONSCAN_API_KEY || "",
+    },
+    customChains: [
+      {
+        network: "polygonAmoy",
+        chainId: 80002,
+        urls: {
+          apiURL: "https://api-amoy.polygonscan.com/api",
+          browserURL: "https://amoy.polygonscan.com",
+        },
+      },
+    ],
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
