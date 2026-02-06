@@ -9,6 +9,7 @@ yarn-error.log*
 # Hardhat
 cache/
 artifacts/
+coverage/
 typechain-types/
 
 # Environment

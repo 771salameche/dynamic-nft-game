@@ -16,6 +16,8 @@ This project aims to build a Dynamic NFT Gaming Ecosystem using Hardhat, OpenZep
     - [4. Compile Contracts](#4-compile-contracts)
     - [5. Run Tests](#5-run-tests)
     - [6. Linting and Formatting](#6-linting-and-formatting)
+  - [Development Workflow](#development-workflow)
+  - [Deployment](#deployment)
   - [Network Configuration](#network-configuration)
   - [Contributing](#contributing)
   - [License](#license)
@@ -98,6 +100,42 @@ Fix formatting issues:
 ```bash
 npm run format
 ```
+
+## Development Workflow
+
+### Writing Contracts
+
+- All Solidity contracts are located in the `contracts/` directory.
+- Follow best practices for Solidity development, including NatSpec comments.
+- Utilize OpenZeppelin contracts for secure and battle-tested components.
+
+### Writing Tests
+
+- Tests are located in the `test/` directory.
+- Write unit and integration tests for all contract logic.
+- Use Hardhat Network for fast local testing.
+
+### Running Local Development Network
+
+To run a local Hardhat Network instance:
+
+```bash
+npx hardhat node
+```
+
+This will start a local blockchain instance that you can connect to for development and testing.
+
+## Deployment
+
+Deployment scripts are located in the `scripts/` directory.
+
+To deploy contracts to a network (e.g., Polygon Amoy), use the following command:
+
+```bash
+npx hardhat run scripts/deploy.ts --network polygonAmoy
+```
+
+Replace `scripts/deploy.ts` with your actual deployment script and `polygonAmoy` with the target network as defined in `hardhat.config.ts`. Ensure your `.env` file contains the `PRIVATE_KEY` and `POLYGON_AMOY_RPC_URL` for the target network.
 
 ## Network Configuration
 
