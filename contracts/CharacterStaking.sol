@@ -17,6 +17,7 @@ interface IGameCharacter is IERC721 {
         uint40 lastTrainedAt;
         uint256 generation;
         string characterClass;
+        bool isFused;
     }
     function getCharacterTraits(uint256 tokenId) external view returns (CharacterTraits memory);
 }
@@ -230,6 +231,10 @@ contract CharacterStaking is Ownable, Pausable, ReentrancyGuard {
         
         if (multiplier > 0) {
             reward = (reward * multiplier) / 100;
+        }
+
+        if (traits.isFused) {
+            reward = reward * 2;
         }
 
         return reward;

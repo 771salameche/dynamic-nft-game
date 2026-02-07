@@ -29,11 +29,13 @@ interface IGameCharacter {
         GeneticMarkers genetics;
         uint8 mutationCount;
         uint8 breedCount;
+        bool isFused;
     }
     function getCharacterTraits(uint256 tokenId) external view returns (CharacterTraits memory);
-    function mintOffspring(address to, string memory characterClass, uint256 generation, uint256 strength, uint256 agility, uint256 intelligence, uint256 parent1, uint256 parent2, GeneticMarkers memory genetics, uint8 mutationCount, uint256 startingLevel) external returns (uint256);
+    function mintOffspring(address to, string memory characterClass, uint256 generation, uint256 strength, uint256 agility, uint256 intelligence, uint256 parent1, uint256 parent2, GeneticMarkers memory genetics, uint8 mutationCount, uint256 startingLevel, bool isFused) external returns (uint256);
     function ownerOf(uint256 tokenId) external view returns (address);
     function getParents(uint256 tokenId) external view returns (uint256[2] memory);
+    function burn(uint256 tokenId) external;
 }
 
 /**
@@ -73,6 +75,7 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
     uint32 public numWords = 10; // Increased random words for advanced genetics
 
     uint256 public breedingCost = 100 * 10**18;
+    uint256 public fusionCost = 500 * 10**18;
     uint256 public baseCooldown = 7 days;
     uint8 public maxGeneration = 10;
     uint8 public maxBreedCount = 5;
@@ -87,6 +90,7 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
 
     event BreedingRequested(uint256 indexed requestId, address indexed breeder, uint256 parent1, uint256 parent2);
     event CharacterBred(uint256 indexed parent1, uint256 indexed parent2, uint256 offspring, uint256 generation);
+    event CharactersFused(uint256 indexed token1, uint256 indexed token2, uint256 fusedToken, uint256 totalStats);
 
     /*///////////////////////////////////////////////////////////////
                             CONSTRUCTOR
@@ -206,7 +210,8 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
             pending.parent2Id,
             offspringGenetics,
             mutationCount,
-            startingLevel
+            startingLevel,
+            false // isFused = false
         );
 
         BreedingPair memory pair = BreedingPair({
@@ -295,5 +300,79 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
         s_subscriptionId = _subId;
         keyHash = _keyHash;
         callbackGasLimit = _gasLimit;
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                            FUSION LOGIC
+    ///////////////////////////////////////////////////////////////*/
+
+    /**
+     * @dev Fuses two level 50+ characters into a super character.
+     */
+    function fuse(uint256 token1, uint256 token2) external nonReentrant returns (uint256) {
+        (bool possible, string memory reason) = canFuse(token1, token2);
+        require(possible, reason);
+
+        IGameCharacter.CharacterTraits memory t1 = gameCharacter.getCharacterTraits(token1);
+        IGameCharacter.CharacterTraits memory t2 = gameCharacter.getCharacterTraits(token2);
+
+        // Calculate Cost with multipliers
+        uint256 totalStats = t1.strength + t1.agility + t1.intelligence + t2.strength + t2.agility + t2.intelligence;
+        uint256 cost = fusionCost;
+        if (totalStats > 600) cost *= 3;
+        else if (totalStats > 500) cost *= 2;
+
+        require(gameToken.transferFrom(msg.sender, address(this), cost), "Token transfer failed");
+
+        // Calculate Fused Traits
+        uint256 strength = _calculateFusedStat(t1.strength, t2.strength);
+        uint256 agility = _calculateFusedStat(t1.agility, t2.agility);
+        uint256 intelligence = _calculateFusedStat(t1.intelligence, t2.intelligence);
+        uint256 gen = (t1.generation > t2.generation ? t1.generation : t2.generation) + 1;
+
+        // Burn both parent NFTs
+        gameCharacter.burn(token1);
+        gameCharacter.burn(token2);
+
+        // Mint Fused Character
+        uint256 fusedTokenId = gameCharacter.mintOffspring(
+            msg.sender,
+            "Fused",
+            gen,
+            strength,
+            agility,
+            intelligence,
+            token1,
+            token2,
+            IGameCharacter.GeneticMarkers(false, false, false, 0, 0, 0), // No genetics for fused
+            0,
+            1, // Fused characters start at lvl 1 but have high base stats
+            true // isFused = true
+        );
+
+        emit CharactersFused(token1, token2, fusedTokenId, totalStats);
+        return fusedTokenId;
+    }
+
+    /**
+     * @dev Checks if two tokens can be fused.
+     */
+    function canFuse(uint256 token1, uint256 token2) public view returns (bool, string memory) {
+        if (token1 == token2) return (false, "Same token");
+        if (gameCharacter.ownerOf(token1) != msg.sender || gameCharacter.ownerOf(token2) != msg.sender) 
+            return (false, "Not owner");
+
+        IGameCharacter.CharacterTraits memory t1 = gameCharacter.getCharacterTraits(token1);
+        IGameCharacter.CharacterTraits memory t2 = gameCharacter.getCharacterTraits(token2);
+
+        if (t1.isFused || t2.isFused) return (false, "Cannot fuse fused");
+        if (t1.level < 50 || t2.level < 50) return (false, "Lvl 50 required");
+
+        return (true, "");
+    }
+
+    function _calculateFusedStat(uint256 s1, uint256 s2) internal pure returns (uint256) {
+        uint256 stat = ((s1 + s2) * 120) / 100; // Sum + 20% bonus
+        return stat > 150 ? 150 : stat; // Cap at 150
     }
 }

@@ -78,6 +78,7 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         GeneticMarkers genetics;
         uint8 mutationCount;
         uint8 breedCount; // Track number of times bred
+        bool isFused; // True if the character is a result of fusion
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -291,7 +292,8 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
                 hiddenIntelligence: 0
             }),
             mutationCount: 0,
-            breedCount: 0
+            breedCount: 0,
+            isFused: false
         });
 
         uint256 requestId = COORDINATOR.requestRandomWords(
@@ -323,7 +325,8 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         uint256 parent2,
         GeneticMarkers memory genetics,
         uint8 mutationCount,
-        uint256 startingLevel
+        uint256 startingLevel,
+        bool isFused
     ) external onlyAuthorized returns (uint256) {
         uint256 newTokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
@@ -341,7 +344,8 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
             characterClass: characterClass,
             genetics: genetics,
             mutationCount: mutationCount,
-            breedCount: 0
+            breedCount: 0,
+            isFused: isFused
         });
 
         _parents[newTokenId] = [parent1, parent2];
@@ -376,10 +380,23 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
             revert MaxLevelReached(tokenId, _MAX_LEVEL);
         }
 
-        _characterTraits[tokenId].experience = _characterTraits[tokenId].experience.add(xpAmount);
-        emit ExperienceGained(tokenId, xpAmount, _characterTraits[tokenId].experience);
+        uint256 amount = uint256(xpAmount);
+        if (_characterTraits[tokenId].isFused) {
+            amount = (amount * 150) / 100; // 50% XP boost for fused characters
+        }
+
+        _characterTraits[tokenId].experience = _characterTraits[tokenId].experience.add(amount);
+        emit ExperienceGained(tokenId, uint16(amount), _characterTraits[tokenId].experience);
 
         _checkLevelUp(tokenId);
+    }
+
+    /// @dev Burns a character NFT. Only callable by authorized addresses.
+    function burn(uint256 tokenId) external onlyAuthorized {
+        if (!_exists(tokenId)) {
+            revert CharacterDoesNotExist(tokenId);
+        }
+        _burn(tokenId);
     }
 
     /// @dev Allows an authorized address to permanently boost a character's traits.
@@ -631,5 +648,5 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     ///////////////////////////////////////////////////////////////*/
 
     /// @dev Storage gap to ensure compatibility during upgrades.
-    uint256[35] private __gap; // Reduced by 1 to account for _parents mapping
+    uint256[34] private __gap; // Reduced by 1 to account for isFused in struct (actually struct grows, but just being safe)
 }

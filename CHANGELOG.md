@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.6.2] - 2026-02-07
+
+### Added
+- Implemented Fusion system in `CharacterBreeding.sol` to combine two Level 50+ characters.
+- Fusion creates a "super-character" by summing parent stats with a 20% bonus (capped at 150).
+- Fused characters receive special bonuses: 50% XP boost and 2x staking rewards.
+- Added dynamic fusion costs based on total parent stats (up to 3x multiplier).
+- Implemented NFT burning for fused parents in `GameCharacter.sol`.
+- Updated `CharacterStaking.sol` to recognize and reward fused characters.
+
 ## [0.6.1] - 2026-02-07
 
 ### Added
