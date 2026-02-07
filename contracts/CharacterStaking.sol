@@ -7,6 +7,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+interface IAchievementTrigger {
+    function checkStakingAchievements(address player) external;
+}
+
 interface IGameCharacter is IERC721 {
     struct CharacterTraits {
         uint256 level;
@@ -47,6 +51,7 @@ contract CharacterStaking is Ownable, Pausable, ReentrancyGuard {
 
     IGameCharacter public immutable characterNFT;
     IGameToken public immutable gameToken;
+    IAchievementTrigger public achievementTrigger;
 
     /// @dev Mapping from user address to their staked tokens info.
     mapping(address => StakeInfo[]) public userStakes;
@@ -109,6 +114,10 @@ contract CharacterStaking is Ownable, Pausable, ReentrancyGuard {
         
         tokenOwner[tokenId] = msg.sender;
         
+        if (address(achievementTrigger) != address(0)) {
+            achievementTrigger.checkStakingAchievements(msg.sender);
+        }
+
         emit Staked(msg.sender, tokenId, block.timestamp);
     }
 
@@ -145,6 +154,11 @@ contract CharacterStaking is Ownable, Pausable, ReentrancyGuard {
         }
 
         gameToken.mint(msg.sender, totalReward);
+
+        if (address(achievementTrigger) != address(0)) {
+            achievementTrigger.checkStakingAchievements(msg.sender);
+        }
+
         emit RewardsClaimed(msg.sender, totalReward);
     }
 
@@ -166,6 +180,10 @@ contract CharacterStaking is Ownable, Pausable, ReentrancyGuard {
     /*///////////////////////////////////////////////////////////////
                             ADMIN FUNCTIONS
     ///////////////////////////////////////////////////////////////*/
+
+    function setAchievementTrigger(address _trigger) external onlyOwner {
+        achievementTrigger = IAchievementTrigger(_trigger);
+    }
 
     function setRewardRate(uint256 newRatePerDay) external onlyOwner {
         baseRewardRate = newRatePerDay / uint256(1 days);

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.7.1] - 2026-02-07
+
+### Added
+- Created `AchievementTrigger.sol` to centralize achievement checking logic.
+- Integrated achievement triggers into `GameCharacter.sol`, `CharacterBreeding.sol`, and `CharacterStaking.sol`.
+- Created `scripts/setup/create-achievements.ts` to populate the tracker with 18 predefined achievements across Collection, Progression, Breeding, and Staking categories.
+- Implemented specific trigger logic for minting, leveling, breeding, fusion, and staking milestones.
+
 ## [0.7.0] - 2026-02-07
 
 ### Added

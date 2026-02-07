@@ -7,6 +7,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
 
+interface IAchievementTrigger {
+    function checkBreedingAchievements(address player, uint256 offspringId, uint256 gen, uint256 s, uint256 a, uint256 i) external;
+    function checkFusionAchievements(address player, uint256 fusedTokenId) external;
+}
+
 interface IGameCharacter {
     struct GeneticMarkers {
         bool strengthDominant;
@@ -61,6 +66,7 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
     VRFCoordinatorV2Interface public COORDINATOR;
     IGameCharacter public gameCharacter;
     IERC20 public gameToken;
+    IAchievementTrigger public achievementTrigger;
 
     uint64 public s_subscriptionId;
     bytes32 public keyHash;
@@ -249,6 +255,10 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
         callbackGasLimit = _gasLimit;
     }
 
+    function setAchievementTrigger(address _trigger) external onlyOwner {
+        achievementTrigger = IAchievementTrigger(_trigger);
+    }
+
     /*///////////////////////////////////////////////////////////////
                             FUSION LOGIC
     ///////////////////////////////////////////////////////////////*/
@@ -279,6 +289,10 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
             msg.sender, "Fused", gen, strength, agility, intelligence, token1, token2,
             IGameCharacter.GeneticMarkers(false, false, false, 0, 0, 0), 0, 1, true
         );
+
+        if (address(achievementTrigger) != address(0)) {
+            achievementTrigger.checkFusionAchievements(msg.sender, fusedTokenId);
+        }
 
         emit CharactersFused(token1, token2, fusedTokenId, totalStats);
         return fusedTokenId;

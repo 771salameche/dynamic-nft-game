@@ -15,6 +15,11 @@ interface ICharacterStaking {
     function tokenOwner(uint256 tokenId) external view returns (address);
 }
 
+interface IAchievementTrigger {
+    function checkMintAchievements(address player, uint256 tokenId) external;
+    function checkLevelAchievements(address player, uint256 tokenId, uint256 level) external;
+}
+
 /// @title GameCharacter
 /// @dev An ERC721Upgradeable contract for game characters with dynamic traits.
 contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, VRFConsumerBaseV2, AutomationCompatible {
@@ -182,6 +187,7 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     uint256 public passiveXPAmount;
     mapping(uint256 => bool) public isAutoXPEnabled;
     ICharacterStaking public stakingContract;
+    IAchievementTrigger public achievementTrigger;
 
     /*///////////////////////////////////////////////////////////////
                             MODIFIERS
@@ -313,6 +319,10 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         emit MintRequested(requestId, newTokenId);
         emit CharacterMinted(newTokenId, msg.sender, characterClass);
 
+        if (address(achievementTrigger) != address(0)) {
+            achievementTrigger.checkMintAchievements(msg.sender, newTokenId);
+        }
+
         return newTokenId;
     }
 
@@ -359,6 +369,10 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         emit TraitsUpdated(newTokenId, startingLevel, strength, agility, intelligence, 0);
         if (mutationCount > 0) {
             emit MutationApplied(newTokenId, mutationCount);
+        }
+
+        if (address(achievementTrigger) != address(0)) {
+            achievementTrigger.checkMintAchievements(to, newTokenId);
         }
 
         return newTokenId;
@@ -455,6 +469,10 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
                 _characterTraits[tokenId].intelligence = _characterTraits[tokenId].intelligence.add(2);
 
                 emit LevelUp(tokenId, oldLevel, _characterTraits[tokenId].level);
+
+                if (address(achievementTrigger) != address(0)) {
+                    achievementTrigger.checkLevelAchievements(ownerOf(tokenId), tokenId, _characterTraits[tokenId].level);
+                }
 
                 // Update oldLevel to new current level for next iteration or final TraitsUpdated event
                 oldLevel = uint8(_characterTraits[tokenId].level);
@@ -630,6 +648,11 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         stakingContract = ICharacterStaking(_stakingContract);
     }
 
+    /// @dev Sets the achievement trigger contract address.
+    function setAchievementTrigger(address _trigger) external onlyOwner {
+        achievementTrigger = IAchievementTrigger(_trigger);
+    }
+
     /*///////////////////////////////////////////////////////////////
                             INTERNAL & PRIVATE
     ///////////////////////////////////////////////////////////////*/
@@ -654,5 +677,5 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     ///////////////////////////////////////////////////////////////*/
 
     /// @dev Storage gap to ensure compatibility during upgrades.
-    uint256[34] private __gap; // Reduced by 1 to account for isFused in struct (actually struct grows, but just being safe)
+    uint256[33] private __gap; // Reduced by 1 to account for achievementTrigger
 }
