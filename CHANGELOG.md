@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.7.0] - 2026-02-07
+
+### Added
+- Created `AchievementTracker.sol` for a comprehensive on-chain achievement system.
+- Supports achievement tiers (Bronze to Diamond) and categories (Combat, Breeding, etc.).
+- Rewards players with character XP and `GameToken` rewards upon unlocking achievements.
+- Automated progress tracking and auto-unlocking functionality.
+- Integrated with `GameCharacter` and `GameToken` for rewards distribution.
+
 ## [0.6.3] - 2026-02-07
 
 ### Added
