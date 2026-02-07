@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.4.1] - 2026-02-07
+
+### Added
+- Created comprehensive unit tests for `CharacterStaking.sol` in `test/unit/CharacterStaking.test.ts`.
+- Verified staking/unstaking operations, reward calculations with multipliers, and claim functionality.
+- Tested edge cases like emergency withdrawal and pausing.
+- Integrated `VRFCoordinatorV2Mock` to support `GameCharacter` minting within staking tests.
+
 ## [0.4.0] - 2026-02-07
 
 ### Added
