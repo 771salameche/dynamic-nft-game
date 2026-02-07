@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.3.1] - 2026-02-07
+
+### Added
+- Created `scripts/setup/setup-vrf.ts` for automated Chainlink VRF subscription management on Polygon Amoy.
+- Created `scripts/setup/fund-subscription.ts` to fund existing VRF subscriptions with LINK.
+- Created `scripts/test/test-vrf-mint.ts` for end-to-end testing of character minting with VRF traits.
+- Created `scripts/test/mock-vrf-fulfill.ts` for local simulation of VRF fulfillment using mocks.
+
 ## [0.3.0] - 2026-02-07
 
 ### Added
