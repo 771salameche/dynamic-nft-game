@@ -55,6 +55,16 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
                             STRUCTS
     ///////////////////////////////////////////////////////////////*/
 
+    /// @dev Represents hidden genetic markers for advanced inheritance.
+    struct GeneticMarkers {
+        bool strengthDominant;
+        bool agilityDominant;
+        bool intelligenceDominant;
+        uint8 hiddenStrength;
+        uint8 hiddenAgility;
+        uint8 hiddenIntelligence;
+    }
+
     /// @dev Represents the various traits of a game character.
     struct CharacterTraits {
         uint256 level;
@@ -65,6 +75,10 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         uint40 lastTrainedAt; // Timestamp of the last training session
         uint256 generation; // e.g., 1 for initial characters, 2 for offspring
         string characterClass; // e.g., Warrior, Mage, Rogue
+        GeneticMarkers genetics;
+        uint8 mutationCount;
+        uint8 breedCount; // Track number of times bred
+        bool isFused; // True if the character is a result of fusion
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -115,6 +129,9 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     /// @param traits An array containing [strength, agility, intelligence].
     event TraitsRevealed(uint256 indexed tokenId, uint256[3] traits);
 
+    /// @dev Emitted when a mutation occurs during breeding.
+    event MutationApplied(uint256 indexed tokenId, uint8 mutationCount);
+
     /// @dev Emitted when Chainlink Automation performs upkeep.
     event UpkeepPerformed(uint256 timestamp);
 
@@ -132,6 +149,9 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
 
     /// @dev Mapping from token ID to CharacterTraits struct.
     mapping(uint256 => CharacterTraits) private _characterTraits;
+
+    /// @dev Mapping from token ID to parents [parent1, parent2].
+    mapping(uint256 => uint256[2]) private _parents;
 
     /// @dev Mapping to keep track of addresses authorized to perform game-specific actions.
     mapping(address => bool) private _authorizedAddresses;
@@ -265,7 +285,18 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
             experience: 0,
             lastTrainedAt: uint40(block.timestamp),
             generation: 1, // First generation characters
-            characterClass: characterClass
+            characterClass: characterClass,
+            genetics: GeneticMarkers({
+                strengthDominant: false,
+                agilityDominant: false,
+                intelligenceDominant: false,
+                hiddenStrength: 0,
+                hiddenAgility: 0,
+                hiddenIntelligence: 0
+            }),
+            mutationCount: 0,
+            breedCount: 0,
+            isFused: false
         });
 
         uint256 requestId = COORDINATOR.requestRandomWords(
@@ -285,6 +316,60 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         return newTokenId;
     }
 
+    /// @dev Mints an offspring character. Only callable by authorized addresses (Breeding contract).
+    function mintOffspring(
+        address to,
+        string memory characterClass,
+        uint256 generation,
+        uint256 strength,
+        uint256 agility,
+        uint256 intelligence,
+        uint256 parent1,
+        uint256 parent2,
+        GeneticMarkers memory genetics,
+        uint8 mutationCount,
+        uint256 startingLevel,
+        bool isFused
+    ) external onlyAuthorized returns (uint256) {
+        uint256 newTokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+
+        _safeMint(to, newTokenId);
+
+        _characterTraits[newTokenId] = CharacterTraits({
+            level: startingLevel,
+            strength: strength,
+            agility: agility,
+            intelligence: intelligence,
+            experience: 0,
+            lastTrainedAt: uint40(block.timestamp),
+            generation: generation,
+            characterClass: characterClass,
+            genetics: genetics,
+            mutationCount: mutationCount,
+            breedCount: 0,
+            isFused: isFused
+        });
+
+        _parents[newTokenId] = [parent1, parent2];
+        _characterTraits[parent1].breedCount++;
+        _characterTraits[parent2].breedCount++;
+
+        emit CharacterMinted(newTokenId, to, characterClass);
+        emit TraitsUpdated(newTokenId, startingLevel, strength, agility, intelligence, 0);
+        if (mutationCount > 0) {
+            emit MutationApplied(newTokenId, mutationCount);
+        }
+
+        return newTokenId;
+    }
+
+    /// @dev Returns the parents of a character.
+    function getParents(uint256 tokenId) external view returns (uint256[2] memory) {
+        if (!_exists(tokenId)) revert CharacterDoesNotExist(tokenId);
+        return _parents[tokenId];
+    }
+
     /*///////////////////////////////////////////////////////////////
                             GAME MECHANICS
     ///////////////////////////////////////////////////////////////*/
@@ -301,10 +386,23 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
             revert MaxLevelReached(tokenId, _MAX_LEVEL);
         }
 
-        _characterTraits[tokenId].experience = _characterTraits[tokenId].experience.add(xpAmount);
-        emit ExperienceGained(tokenId, xpAmount, _characterTraits[tokenId].experience);
+        uint256 amount = uint256(xpAmount);
+        if (_characterTraits[tokenId].isFused) {
+            amount = (amount * 150) / 100; // 50% XP boost for fused characters
+        }
+
+        _characterTraits[tokenId].experience = _characterTraits[tokenId].experience.add(amount);
+        emit ExperienceGained(tokenId, uint16(amount), _characterTraits[tokenId].experience);
 
         _checkLevelUp(tokenId);
+    }
+
+    /// @dev Burns a character NFT. Only callable by authorized addresses.
+    function burn(uint256 tokenId) external onlyAuthorized {
+        if (!_exists(tokenId)) {
+            revert CharacterDoesNotExist(tokenId);
+        }
+        _burn(tokenId);
     }
 
     /// @dev Allows an authorized address to permanently boost a character's traits.
@@ -556,5 +654,5 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     ///////////////////////////////////////////////////////////////*/
 
     /// @dev Storage gap to ensure compatibility during upgrades.
-    uint256[36] private __gap; // Reduced by 5 to account for new Automation variables
+    uint256[34] private __gap; // Reduced by 1 to account for isFused in struct (actually struct grows, but just being safe)
 }
