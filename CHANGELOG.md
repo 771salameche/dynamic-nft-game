@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.4.3] - 2026-02-07
+
+### Added
+- Created `TokenVesting.sol` for team token distribution with cliff and linear vesting.
+- Created `scripts/setup/configure-tokenomics.ts` to automate token distribution, vesting setup, and staking funding.
+- Documented token allocation and utility in `docs/TOKENOMICS.md`.
+- Defined initial distribution: Treasury (40%), Staking (30%), Team (15%), Liquidity (10%), Community (5%).
+
 ## [0.4.2] - 2026-02-07
 
 ### Added
