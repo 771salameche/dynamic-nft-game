@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.5.0] - 2026-02-07
+
+### Added
+- Integrated Chainlink Automation into `GameCharacter.sol` for passive gameplay mechanics.
+- Implemented `checkUpkeep` and `performUpkeep` to automate passive XP distribution.
+- New state variables: `lastUpdateTimestamp`, `updateInterval`, `passiveXPAmount`, and `isAutoXPEnabled`.
+- New function `enableAutoXP` to allow players to opt-in for passive character progression.
+- Integration with `CharacterStaking` to ensure only staked characters receive passive XP.
+- New events: `UpkeepPerformed`, `PassiveXPGranted`, and `AutoXPEnabled`.
+
 ## [0.4.3] - 2026-02-07
 
 ### Added
