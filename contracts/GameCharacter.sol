@@ -7,10 +7,12 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol"; // Import SafeMathUpgradeable
+import "@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
+import "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
 
 /// @title GameCharacter
 /// @dev An ERC721Upgradeable contract for game characters with dynamic traits.
-contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable {
+contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, VRFConsumerBaseV2 {
     using CountersUpgradeable for CountersUpgradeable.Counter;
     using SafeMathUpgradeable for uint256; // Enable SafeMath for uint256
     using SafeMathUpgradeable for uint8;   // Enable SafeMath for uint8 if needed (e.g., for level calculations)
@@ -98,6 +100,16 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     /// @param newTotalExperience The new total experience of the character.
     event ExperienceGained(uint256 indexed tokenId, uint16 amount, uint256 newTotalExperience);
 
+    /// @dev Emitted when a VRF request is made for character traits.
+    /// @param requestId The ID of the VRF request.
+    /// @param tokenId The ID of the token being minted.
+    event MintRequested(uint256 indexed requestId, uint256 indexed tokenId);
+
+    /// @dev Emitted when traits are revealed via VRF.
+    /// @param tokenId The ID of the token whose traits were revealed.
+    /// @param traits An array containing [strength, agility, intelligence].
+    event TraitsRevealed(uint256 indexed tokenId, uint256[3] traits);
+
     /*///////////////////////////////////////////////////////////////
                             STORAGE
     ///////////////////////////////////////////////////////////////*/
@@ -109,6 +121,23 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
 
     /// @dev Mapping to keep track of addresses authorized to perform game-specific actions.
     mapping(address => bool) private _authorizedAddresses;
+
+    /*///////////////////////////////////////////////////////////////
+                            VRF STORAGE
+    ///////////////////////////////////////////////////////////////*/
+
+    VRFCoordinatorV2Interface public COORDINATOR;
+    uint64 public s_subscriptionId;
+    bytes32 public keyHash;
+    uint32 public callbackGasLimit;
+    uint16 public requestConfirmations;
+    uint32 public numWords;
+
+    /// @dev Mapping from VRF request ID to token ID.
+    mapping(uint256 => uint256) public requestToTokenId;
+
+    /// @dev Mapping from VRF request ID to minter address.
+    mapping(uint256 => address) public requestToMinter;
 
     /*///////////////////////////////////////////////////////////////
                             MODIFIERS
@@ -126,14 +155,35 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
                             INITIALIZER
     ///////////////////////////////////////////////////////////////*/
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor(address vrfCoordinator) VRFConsumerBaseV2(vrfCoordinator) {
+        _disableInitializers();
+    }
+
     /// @dev Initializes the contract.
     /// @param name_ The name of the NFT collection.
     /// @param symbol_ The symbol of the NFT collection.
-    function initialize(string memory name_, string memory symbol_) public initializer {
+    /// @param vrfCoordinator The address of the VRF coordinator.
+    /// @param subscriptionId The subscription ID for VRF.
+    /// @param _keyHash The key hash for VRF.
+    function initialize(
+        string memory name_,
+        string memory symbol_,
+        address vrfCoordinator,
+        uint64 subscriptionId,
+        bytes32 _keyHash
+    ) public initializer {
         __ERC721_init(name_, symbol_);
         __Ownable_init();
         __UUPSUpgradeable_init();
         __ReentrancyGuard_init();
+
+        COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
+        s_subscriptionId = subscriptionId;
+        keyHash = _keyHash;
+        callbackGasLimit = 200000;
+        requestConfirmations = 3;
+        numWords = 3;
 
         _tokenIdCounter.increment(); // Initialize counter to 1, first token will be 1
     }
@@ -190,6 +240,18 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
             characterClass: characterClass
         });
 
+        uint256 requestId = COORDINATOR.requestRandomWords(
+            keyHash,
+            s_subscriptionId,
+            requestConfirmations,
+            callbackGasLimit,
+            numWords
+        );
+
+        requestToTokenId[requestId] = newTokenId;
+        requestToMinter[requestId] = msg.sender;
+
+        emit MintRequested(requestId, newTokenId);
         emit CharacterMinted(newTokenId, msg.sender, characterClass);
 
         return newTokenId;
@@ -299,6 +361,53 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     }
 
     /*///////////////////////////////////////////////////////////////
+                            VRF CALLBACK
+    ///////////////////////////////////////////////////////////////*/
+
+    /// @dev Callback function used by VRF Coordinator.
+    /// @param requestId The ID of the request being fulfilled.
+    /// @param randomWords The random words generated by VRF.
+    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal override {
+        uint256 tokenId = requestToTokenId[requestId];
+        if (!_exists(tokenId)) {
+            revert CharacterDoesNotExist(tokenId);
+        }
+
+        // Use randomWords to set traits (range 50-100)
+        uint256 strength = (randomWords[0] % 51) + 50;
+        uint256 agility = (randomWords[1] % 51) + 50;
+        uint256 intelligence = (randomWords[2] % 51) + 50;
+
+        _characterTraits[tokenId].strength = strength;
+        _characterTraits[tokenId].agility = agility;
+        _characterTraits[tokenId].intelligence = intelligence;
+
+        uint256[3] memory traits = [strength, agility, intelligence];
+        emit TraitsRevealed(tokenId, traits);
+
+        emit TraitsUpdated(
+            tokenId,
+            _characterTraits[tokenId].level,
+            strength,
+            agility,
+            intelligence,
+            _characterTraits[tokenId].experience
+        );
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                            VRF CONFIGURATION
+    ///////////////////////////////////////////////////////////////*/
+
+    /// @dev Allows the owner to update VRF configuration.
+    /// @param subscriptionId The new subscription ID.
+    /// @param newKeyHash The new key hash.
+    function setVRFConfig(uint64 subscriptionId, bytes32 newKeyHash) external onlyOwner {
+        s_subscriptionId = subscriptionId;
+        keyHash = newKeyHash;
+    }
+
+    /*///////////////////////////////////////////////////////////////
                             INTERNAL & PRIVATE
     ///////////////////////////////////////////////////////////////*/
 
@@ -322,5 +431,5 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     ///////////////////////////////////////////////////////////////*/
 
     /// @dev Storage gap to ensure compatibility during upgrades.
-    uint256[49] private __gap; // Reduced by 1 to account for _authorizedAddresses mapping
+    uint256[41] private __gap; // Reduced by 8 to account for new VRF variables
 }

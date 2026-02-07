@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.3.0] - 2026-02-07
+
+### Added
+- Integrated Chainlink VRF v2 into `GameCharacter.sol` for random trait generation (strength, agility, intelligence).
+- New state variables for VRF configuration: `COORDINATOR`, `s_subscriptionId`, `keyHash`, `callbackGasLimit`, `requestConfirmations`, and `numWords`.
+- New mappings: `requestToTokenId` and `requestToMinter`.
+- New events: `MintRequested(requestId, tokenId)` and `TraitsRevealed(tokenId, traits)`.
+- New function `setVRFConfig` to update VRF parameters.
+
+### Changed
+- `GameCharacter` now inherits from `VRFConsumerBaseV2`.
+- `initialize()` updated to accept VRF parameters (`vrfCoordinator`, `subscriptionId`, `keyHash`).
+- `mintCharacter()` now requests random traits from Chainlink VRF and initializes character with temporary default traits.
+
 ## [0.0.1] - 2026-02-06
 
 ### Added
