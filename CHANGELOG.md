@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.3.3] - 2026-02-07
+
+### Added
+- Created comprehensive integration tests in `test/integration/VRF.test.ts`.
+- Verified VRF subscription setup, random trait generation, and loot box item assignment.
+- Implemented `VRFCoordinatorV2Mock` for local integration testing.
+- Added `unsafeAllow` flags for upgradeable contract deployments involving VRF.
+
 ## [0.3.2] - 2026-02-07
 
 ### Added

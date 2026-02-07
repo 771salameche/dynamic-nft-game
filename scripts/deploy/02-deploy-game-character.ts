@@ -27,6 +27,7 @@ async function main() {
       initializer: "initialize",
       kind: "uups",
       constructorArgs: [vrfCoordinator],
+      unsafeAllow: ["constructor", "state-variable-immutable"],
     }
   )) as unknown as GameCharacter;
 
