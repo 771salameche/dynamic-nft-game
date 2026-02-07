@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.6.3] - 2026-02-07
+
+### Added
+- Created comprehensive unit tests for breeding and fusion in `test/unit/CharacterBreeding.test.ts`.
+- Verified offspring generation with correct genetic inheritance and balance tracking.
+- Verified fusion logic including parent NFT burning and super-character creation.
+- Increased `callbackGasLimit` to 1,000,000 in `CharacterBreeding.sol` to support complex VRF fulfillments.
+- Added `MutationApplied` event to `GameCharacter.sol`.
+
 ## [0.6.2] - 2026-02-07
 
 ### Added

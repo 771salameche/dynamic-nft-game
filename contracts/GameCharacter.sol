@@ -129,6 +129,9 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     /// @param traits An array containing [strength, agility, intelligence].
     event TraitsRevealed(uint256 indexed tokenId, uint256[3] traits);
 
+    /// @dev Emitted when a mutation occurs during breeding.
+    event MutationApplied(uint256 indexed tokenId, uint8 mutationCount);
+
     /// @dev Emitted when Chainlink Automation performs upkeep.
     event UpkeepPerformed(uint256 timestamp);
 
@@ -354,6 +357,9 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
 
         emit CharacterMinted(newTokenId, to, characterClass);
         emit TraitsUpdated(newTokenId, startingLevel, strength, agility, intelligence, 0);
+        if (mutationCount > 0) {
+            emit MutationApplied(newTokenId, mutationCount);
+        }
 
         return newTokenId;
     }

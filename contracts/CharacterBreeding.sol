@@ -54,12 +54,6 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
         uint256 timestamp;
     }
 
-    struct PendingBreed {
-        address breeder;
-        uint256 parent1Id;
-        uint256 parent2Id;
-    }
-
     /*///////////////////////////////////////////////////////////////
                             STORAGE
     ///////////////////////////////////////////////////////////////*/
@@ -70,9 +64,9 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
 
     uint64 public s_subscriptionId;
     bytes32 public keyHash;
-    uint32 public callbackGasLimit = 500000;
+    uint32 public callbackGasLimit = 1000000;
     uint16 public requestConfirmations = 3;
-    uint32 public numWords = 10; // Increased random words for advanced genetics
+    uint32 public numWords = 10;
 
     uint256 public breedingCost = 100 * 10**18;
     uint256 public fusionCost = 500 * 10**18;
@@ -82,7 +76,10 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
 
     mapping(uint256 => uint256) public lastBredAt;
     mapping(uint256 => BreedingPair[]) public breedingHistory;
-    mapping(uint256 => PendingBreed) public pendingBreeds;
+    
+    mapping(uint256 => address) public requestToBreeder;
+    mapping(uint256 => uint256) public requestToParent1;
+    mapping(uint256 => uint256) public requestToParent2;
 
     /*///////////////////////////////////////////////////////////////
                             EVENTS
@@ -114,9 +111,6 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
                             BREEDING LOGIC
     ///////////////////////////////////////////////////////////////*/
 
-    /**
-     * @dev Initiates breeding between two owned characters.
-     */
     function breed(uint256 parent1Id, uint256 parent2Id) external nonReentrant returns (uint256) {
         require(parent1Id != parent2Id, "Cannot breed with self");
         require(gameCharacter.ownerOf(parent1Id) == msg.sender, "Not owner of parent 1");
@@ -125,7 +119,6 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
         require(canBreed(parent2Id), "Parent 2 cannot breed");
         require(!_isSibling(parent1Id, parent2Id), "Cannot breed siblings");
 
-        // Burn GAME tokens
         require(gameToken.transferFrom(msg.sender, address(this), breedingCost), "Token transfer failed");
         
         uint256 requestId = COORDINATOR.requestRandomWords(
@@ -136,11 +129,9 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
             numWords
         );
 
-        pendingBreeds[requestId] = PendingBreed({
-            breeder: msg.sender,
-            parent1Id: parent1Id,
-            parent2Id: parent2Id
-        });
+        requestToBreeder[requestId] = msg.sender;
+        requestToParent1[requestId] = parent1Id;
+        requestToParent2[requestId] = parent2Id;
 
         lastBredAt[parent1Id] = block.timestamp;
         lastBredAt[parent2Id] = block.timestamp;
@@ -149,85 +140,59 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
         return requestId;
     }
 
-    /**
-     * @dev VRF callback to finalize breeding.
-     */
     function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords) internal override {
-        PendingBreed memory pending = pendingBreeds[requestId];
-        require(pending.breeder != address(0), "Breed not found");
+        address breeder = requestToBreeder[requestId];
+        require(breeder != address(0), "Breed not found");
 
-        IGameCharacter.CharacterTraits memory p1 = gameCharacter.getCharacterTraits(pending.parent1Id);
-        IGameCharacter.CharacterTraits memory p2 = gameCharacter.getCharacterTraits(pending.parent2Id);
+        uint256 p1Id = requestToParent1[requestId];
+        uint256 p2Id = requestToParent2[requestId];
+
+        IGameCharacter.CharacterTraits memory p1 = gameCharacter.getCharacterTraits(p1Id);
+        IGameCharacter.CharacterTraits memory p2 = gameCharacter.getCharacterTraits(p2Id);
 
         uint256 offspringGen = (p1.generation > p2.generation ? p1.generation : p2.generation) + 1;
-        uint256 startingLevel = 1;
-
-        // Special Bonus: High level parents
-        if (p1.level >= 50 && p2.level >= 50) {
-            startingLevel = 5;
-        }
-
-        // Inherit class
+        uint256 startingLevel = (p1.level >= 50 && p2.level >= 50) ? 5 : 1;
         string memory offspringClass = p1.level >= p2.level ? p1.characterClass : p2.characterClass;
 
-        // Calculate Genetics
         IGameCharacter.GeneticMarkers memory offspringGenetics;
         offspringGenetics.strengthDominant = (randomWords[0] % 100) < 75 ? p1.genetics.strengthDominant : p2.genetics.strengthDominant;
         offspringGenetics.agilityDominant = (randomWords[1] % 100) < 75 ? p1.genetics.agilityDominant : p2.genetics.agilityDominant;
         offspringGenetics.intelligenceDominant = (randomWords[2] % 100) < 75 ? p1.genetics.intelligenceDominant : p2.genetics.intelligenceDominant;
         
-        // Calculate Stats
         uint256 strength = _calculateStat(p1.strength, p2.strength, randomWords[3]);
         uint256 agility = _calculateStat(p1.agility, p2.agility, randomWords[4]);
         uint256 intelligence = _calculateStat(p1.intelligence, p2.intelligence, randomWords[5]);
 
-        // Mutation System
         uint8 mutationCount = 0;
         (strength, mutationCount) = _applyMutation(strength, randomWords[6], mutationCount);
         (agility, mutationCount) = _applyMutation(agility, randomWords[7], mutationCount);
         (intelligence, mutationCount) = _applyMutation(intelligence, randomWords[8], mutationCount);
 
-        // Same Class Bonus
         if (keccak256(abi.encodePacked(p1.characterClass)) == keccak256(abi.encodePacked(p2.characterClass))) {
             if (keccak256(abi.encodePacked(offspringClass)) == keccak256(abi.encodePacked("Warrior"))) strength += 5;
             else if (keccak256(abi.encodePacked(offspringClass)) == keccak256(abi.encodePacked("Rogue"))) agility += 5;
             else intelligence += 5;
         }
 
-        // Max Stat Guarantee
         if (p1.strength >= 100 && p2.strength >= 100 && strength < 90) strength = 90;
         if (p1.agility >= 100 && p2.agility >= 100 && agility < 90) agility = 90;
         if (p1.intelligence >= 100 && p2.intelligence >= 100 && intelligence < 90) intelligence = 90;
 
         uint256 offspringId = gameCharacter.mintOffspring(
-            pending.breeder,
-            offspringClass,
-            offspringGen,
-            strength,
-            agility,
-            intelligence,
-            pending.parent1Id,
-            pending.parent2Id,
-            offspringGenetics,
-            mutationCount,
-            startingLevel,
-            false // isFused = false
+            breeder, offspringClass, offspringGen, strength, agility, intelligence, p1Id, p2Id,
+            offspringGenetics, mutationCount, startingLevel, false
         );
 
-        BreedingPair memory pair = BreedingPair({
-            parent1: pending.parent1Id,
-            parent2: pending.parent2Id,
-            offspring: offspringId,
-            timestamp: block.timestamp
-        });
-
-        breedingHistory[pending.parent1Id].push(pair);
-        breedingHistory[pending.parent2Id].push(pair);
+        BreedingPair memory pair = BreedingPair(p1Id, p2Id, offspringId, block.timestamp);
+        breedingHistory[p1Id].push(pair);
+        breedingHistory[p2Id].push(pair);
         breedingHistory[offspringId].push(pair);
 
-        delete pendingBreeds[requestId];
+        delete requestToBreeder[requestId];
+        delete requestToParent1[requestId];
+        delete requestToParent2[requestId];
 
-        emit CharacterBred(pending.parent1Id, pending.parent2Id, offspringId, offspringGen);
+        emit CharacterBred(p1Id, p2Id, offspringId, offspringGen);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -237,7 +202,6 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
     function canBreed(uint256 tokenId) public view returns (bool) {
         IGameCharacter.CharacterTraits memory traits = gameCharacter.getCharacterTraits(tokenId);
         uint256 cooldown = baseCooldown + ((baseCooldown * 10 * traits.breedCount) / 100);
-        
         return (
             block.timestamp >= lastBredAt[tokenId] + cooldown &&
             traits.generation < maxGeneration &&
@@ -252,9 +216,7 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
     function _isSibling(uint256 p1, uint256 p2) internal view returns (bool) {
         uint256[2] memory parents1 = gameCharacter.getParents(p1);
         uint256[2] memory parents2 = gameCharacter.getParents(p2);
-
         if (parents1[0] == 0 || parents2[0] == 0) return false;
-
         return (
             (parents1[0] == parents2[0] && parents1[1] == parents2[1]) ||
             (parents1[0] == parents2[1] && parents1[1] == parents2[0])
@@ -262,21 +224,15 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
     }
 
     function _calculateStat(uint256 s1, uint256 s2, uint256 random) internal pure returns (uint256) {
-        // Weighted average: (p1 * 0.4) + (p2 * 0.4) + random(0, 20)
         uint256 base = (s1 * 40 / 100) + (s2 * 40 / 100);
-        uint256 variance = random % 21;
-        return base + variance;
+        return base + (random % 21);
     }
 
     function _applyMutation(uint256 stat, uint256 random, uint8 count) internal pure returns (uint256, uint8) {
-        uint256 roll = random % 1000; // 0-999
-        if (roll < 50) { // 5% Positive
-            return (stat + 10, count + 1);
-        } else if (roll < 70) { // 2% Negative
-            return (stat > 5 ? stat - 5 : 0, count);
-        } else if (roll == 999) { // 0.1% Legendary
-            return (stat + 20, count + 1);
-        }
+        uint256 roll = random % 1000;
+        if (roll < 50) return (stat + 10, count + 1);
+        if (roll < 70) return (stat > 5 ? stat - 5 : 0, count);
+        if (roll == 999) return (stat + 20, count + 1);
         return (stat, count);
     }
 
@@ -284,18 +240,9 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
                             ADMIN FUNCTIONS
     ///////////////////////////////////////////////////////////////*/
 
-    function setBreedingCost(uint256 newCost) external onlyOwner {
-        breedingCost = newCost;
-    }
-
-    function setBaseCooldown(uint256 newCooldown) external onlyOwner {
-        baseCooldown = newCooldown;
-    }
-
-    function setMaxGeneration(uint8 newMax) external onlyOwner {
-        maxGeneration = newMax;
-    }
-
+    function setBreedingCost(uint256 newCost) external onlyOwner { breedingCost = newCost; }
+    function setBaseCooldown(uint256 newCooldown) external onlyOwner { baseCooldown = newCooldown; }
+    function setMaxGeneration(uint8 newMax) external onlyOwner { maxGeneration = newMax; }
     function setVRFConfig(uint64 _subId, bytes32 _keyHash, uint32 _gasLimit) external onlyOwner {
         s_subscriptionId = _subId;
         keyHash = _keyHash;
@@ -306,9 +253,6 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
                             FUSION LOGIC
     ///////////////////////////////////////////////////////////////*/
 
-    /**
-     * @dev Fuses two level 50+ characters into a super character.
-     */
     function fuse(uint256 token1, uint256 token2) external nonReentrant returns (uint256) {
         (bool possible, string memory reason) = canFuse(token1, token2);
         require(possible, reason);
@@ -316,7 +260,6 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
         IGameCharacter.CharacterTraits memory t1 = gameCharacter.getCharacterTraits(token1);
         IGameCharacter.CharacterTraits memory t2 = gameCharacter.getCharacterTraits(token2);
 
-        // Calculate Cost with multipliers
         uint256 totalStats = t1.strength + t1.agility + t1.intelligence + t2.strength + t2.agility + t2.intelligence;
         uint256 cost = fusionCost;
         if (totalStats > 600) cost *= 3;
@@ -324,55 +267,36 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
 
         require(gameToken.transferFrom(msg.sender, address(this), cost), "Token transfer failed");
 
-        // Calculate Fused Traits
         uint256 strength = _calculateFusedStat(t1.strength, t2.strength);
         uint256 agility = _calculateFusedStat(t1.agility, t2.agility);
         uint256 intelligence = _calculateFusedStat(t1.intelligence, t2.intelligence);
         uint256 gen = (t1.generation > t2.generation ? t1.generation : t2.generation) + 1;
 
-        // Burn both parent NFTs
         gameCharacter.burn(token1);
         gameCharacter.burn(token2);
 
-        // Mint Fused Character
         uint256 fusedTokenId = gameCharacter.mintOffspring(
-            msg.sender,
-            "Fused",
-            gen,
-            strength,
-            agility,
-            intelligence,
-            token1,
-            token2,
-            IGameCharacter.GeneticMarkers(false, false, false, 0, 0, 0), // No genetics for fused
-            0,
-            1, // Fused characters start at lvl 1 but have high base stats
-            true // isFused = true
+            msg.sender, "Fused", gen, strength, agility, intelligence, token1, token2,
+            IGameCharacter.GeneticMarkers(false, false, false, 0, 0, 0), 0, 1, true
         );
 
         emit CharactersFused(token1, token2, fusedTokenId, totalStats);
         return fusedTokenId;
     }
 
-    /**
-     * @dev Checks if two tokens can be fused.
-     */
     function canFuse(uint256 token1, uint256 token2) public view returns (bool, string memory) {
         if (token1 == token2) return (false, "Same token");
         if (gameCharacter.ownerOf(token1) != msg.sender || gameCharacter.ownerOf(token2) != msg.sender) 
             return (false, "Not owner");
-
         IGameCharacter.CharacterTraits memory t1 = gameCharacter.getCharacterTraits(token1);
         IGameCharacter.CharacterTraits memory t2 = gameCharacter.getCharacterTraits(token2);
-
         if (t1.isFused || t2.isFused) return (false, "Cannot fuse fused");
         if (t1.level < 50 || t2.level < 50) return (false, "Lvl 50 required");
-
         return (true, "");
     }
 
     function _calculateFusedStat(uint256 s1, uint256 s2) internal pure returns (uint256) {
-        uint256 stat = ((s1 + s2) * 120) / 100; // Sum + 20% bonus
-        return stat > 150 ? 150 : stat; // Cap at 150
+        uint256 stat = ((s1 + s2) * 120) / 100;
+        return stat > 150 ? 150 : stat;
     }
 }
