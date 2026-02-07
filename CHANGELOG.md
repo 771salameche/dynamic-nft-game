@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.5.1] - 2026-02-07
+
+### Added
+- Created `DailyQuest.sol` for automated daily challenges.
+- Integrated Chainlink Automation to trigger daily quest generation.
+- Used Chainlink VRF for randomized quest types and difficulties.
+- Rewards include both character experience (XP) and `GameToken` rewards.
+- Quests have a 24-hour expiration period.
+
 ## [0.5.0] - 2026-02-07
 
 ### Added
