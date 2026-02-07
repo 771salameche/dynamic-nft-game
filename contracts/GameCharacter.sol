@@ -133,6 +133,9 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     /// @dev Mapping from token ID to CharacterTraits struct.
     mapping(uint256 => CharacterTraits) private _characterTraits;
 
+    /// @dev Mapping from token ID to parents [parent1, parent2].
+    mapping(uint256 => uint256[2]) private _parents;
+
     /// @dev Mapping to keep track of addresses authorized to perform game-specific actions.
     mapping(address => bool) private _authorizedAddresses;
 
@@ -283,6 +286,47 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         emit CharacterMinted(newTokenId, msg.sender, characterClass);
 
         return newTokenId;
+    }
+
+    /// @dev Mints an offspring character. Only callable by authorized addresses (Breeding contract).
+    function mintOffspring(
+        address to,
+        string memory characterClass,
+        uint256 generation,
+        uint256 strength,
+        uint256 agility,
+        uint256 intelligence,
+        uint256 parent1,
+        uint256 parent2
+    ) external onlyAuthorized returns (uint256) {
+        uint256 newTokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+
+        _safeMint(to, newTokenId);
+
+        _characterTraits[newTokenId] = CharacterTraits({
+            level: 1,
+            strength: strength,
+            agility: agility,
+            intelligence: intelligence,
+            experience: 0,
+            lastTrainedAt: uint40(block.timestamp),
+            generation: generation,
+            characterClass: characterClass
+        });
+
+        _parents[newTokenId] = [parent1, parent2];
+
+        emit CharacterMinted(newTokenId, to, characterClass);
+        emit TraitsUpdated(newTokenId, 1, strength, agility, intelligence, 0);
+
+        return newTokenId;
+    }
+
+    /// @dev Returns the parents of a character.
+    function getParents(uint256 tokenId) external view returns (uint256[2] memory) {
+        if (!_exists(tokenId)) revert CharacterDoesNotExist(tokenId);
+        return _parents[tokenId];
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -556,5 +600,5 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     ///////////////////////////////////////////////////////////////*/
 
     /// @dev Storage gap to ensure compatibility during upgrades.
-    uint256[36] private __gap; // Reduced by 5 to account for new Automation variables
+    uint256[35] private __gap; // Reduced by 1 to account for _parents mapping
 }

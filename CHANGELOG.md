@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.6.0] - 2026-02-07
+
+### Added
+- Created `CharacterBreeding.sol` for a genetics-based breeding system.
+- Implemented trait inheritance with variance and mutation using Chainlink VRF.
+- Added generation tracking and sibling breeding restrictions.
+- Integrated GAME token burn mechanism for breeding costs.
+- Modified `GameCharacter.sol` to track parentage and allow authorized minting of offspring.
+- Enabled `viaIR` in Hardhat configuration to handle complex contract compilation.
+
 ## [0.5.3] - 2026-02-07
 
 ### Added
