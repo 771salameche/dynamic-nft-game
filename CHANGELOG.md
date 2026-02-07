@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.4.0] - 2026-02-07
+
+### Added
+- Created `CharacterStaking.sol` for NFT staking and token rewards.
+- Implemented time-based reward calculation with level multipliers.
+- Added anti-gaming mechanism with a minimum stake time before rewards can be claimed.
+- Included emergency withdrawal functionality and administrative controls for reward rates and multipliers.
+
 ## [0.3.3] - 2026-02-07
 
 ### Added
