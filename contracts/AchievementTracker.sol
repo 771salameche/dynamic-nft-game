@@ -15,6 +15,10 @@ interface IGameToken {
     function mint(address to, uint256 amount) external;
 }
 
+interface IAchievementBadge {
+    function mintBadge(address player, uint256 achievementId, string memory achievementName, uint8 tier) external;
+}
+
 /**
  * @title AchievementTracker
  * @dev A comprehensive achievement system for the Dynamic NFT Gaming Ecosystem.
@@ -49,6 +53,7 @@ contract AchievementTracker is Ownable, ReentrancyGuard {
 
     IGameToken public immutable gameToken;
     IGameCharacter public immutable characterNFT;
+    IAchievementBadge public achievementBadge;
 
     uint256 public totalAchievements;
     
@@ -104,6 +109,10 @@ contract AchievementTracker is Ownable, ReentrancyGuard {
     function removeAuthorizedAddress(address authAddress) external onlyOwner {
         _authorizedAddresses[authAddress] = false;
         emit AuthorizedAddressRemoved(authAddress);
+    }
+
+    function setAchievementBadge(address _badgeContract) external onlyOwner {
+        achievementBadge = IAchievementBadge(_badgeContract);
     }
 
     /**
@@ -169,6 +178,10 @@ contract AchievementTracker is Ownable, ReentrancyGuard {
         }
         if (achievement.tokenReward > 0) {
             gameToken.mint(_player, achievement.tokenReward);
+        }
+
+        if (address(achievementBadge) != address(0)) {
+            achievementBadge.mintBadge(_player, _achievementId, achievement.name, achievement.tier);
         }
 
         emit AchievementUnlocked(_player, _achievementId, achievement.xpReward, achievement.tokenReward);
