@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.4.3] - 2026-02-07
+
+### Added
+- Created `TokenVesting.sol` for team token distribution with cliff and linear vesting.
+- Created `scripts/setup/configure-tokenomics.ts` to automate token distribution, vesting setup, and staking funding.
+- Documented token allocation and utility in `docs/TOKENOMICS.md`.
+- Defined initial distribution: Treasury (40%), Staking (30%), Team (15%), Liquidity (10%), Community (5%).
+
+## [0.4.2] - 2026-02-07
+
+### Added
+- Created custom React hooks in `frontend/hooks/useStaking.ts` using `wagmi` for staking UI.
+- `useStake`: Handles NFT approval and staking.
+- `useUnstake`: Handles character unstaking.
+- `useClaimRewards`: Manages reward claiming and fetches claimable amounts.
+- `useStakedCharacters`: Fetches and watches staked NFT data for users.
+- `useStakingStats`: Provides summary statistics for staking.
+- `useRewardCalculation`: Real-time reward estimation and projections.
+
+## [0.4.1] - 2026-02-07
+
+### Added
+- Created comprehensive unit tests for `CharacterStaking.sol` in `test/unit/CharacterStaking.test.ts`.
+- Verified staking/unstaking operations, reward calculations with multipliers, and claim functionality.
+- Tested edge cases like emergency withdrawal and pausing.
+- Integrated `VRFCoordinatorV2Mock` to support `GameCharacter` minting within staking tests.
+
+## [0.4.0] - 2026-02-07
+
+### Added
+- Created `CharacterStaking.sol` for NFT staking and token rewards.
+- Implemented time-based reward calculation with level multipliers.
+- Added anti-gaming mechanism with a minimum stake time before rewards can be claimed.
+- Included emergency withdrawal functionality and administrative controls for reward rates and multipliers.
+
 ## [0.3.3] - 2026-02-07
 
 ### Added
