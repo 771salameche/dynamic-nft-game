@@ -9,10 +9,15 @@ import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol"; // Import SafeMathUpgradeable
 import "@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
+import "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
+
+interface ICharacterStaking {
+    function tokenOwner(uint256 tokenId) external view returns (address);
+}
 
 /// @title GameCharacter
 /// @dev An ERC721Upgradeable contract for game characters with dynamic traits.
-contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, VRFConsumerBaseV2 {
+contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, VRFConsumerBaseV2, AutomationCompatible {
     using CountersUpgradeable for CountersUpgradeable.Counter;
     using SafeMathUpgradeable for uint256; // Enable SafeMath for uint256
     using SafeMathUpgradeable for uint8;   // Enable SafeMath for uint8 if needed (e.g., for level calculations)
@@ -110,6 +115,15 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     /// @param traits An array containing [strength, agility, intelligence].
     event TraitsRevealed(uint256 indexed tokenId, uint256[3] traits);
 
+    /// @dev Emitted when Chainlink Automation performs upkeep.
+    event UpkeepPerformed(uint256 timestamp);
+
+    /// @dev Emitted when passive XP is granted to a character.
+    event PassiveXPGranted(uint256 indexed tokenId, uint256 amount);
+
+    /// @dev Emitted when auto-XP is enabled for a character.
+    event AutoXPEnabled(uint256 indexed tokenId);
+
     /*///////////////////////////////////////////////////////////////
                             STORAGE
     ///////////////////////////////////////////////////////////////*/
@@ -138,6 +152,16 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
 
     /// @dev Mapping from VRF request ID to minter address.
     mapping(uint256 => address) public requestToMinter;
+
+    /*///////////////////////////////////////////////////////////////
+                            AUTOMATION STORAGE
+    ///////////////////////////////////////////////////////////////*/
+
+    uint256 public lastUpdateTimestamp;
+    uint256 public updateInterval;
+    uint256 public passiveXPAmount;
+    mapping(uint256 => bool) public isAutoXPEnabled;
+    ICharacterStaking public stakingContract;
 
     /*///////////////////////////////////////////////////////////////
                             MODIFIERS
@@ -184,6 +208,10 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         callbackGasLimit = 200000;
         requestConfirmations = 3;
         numWords = 3;
+
+        updateInterval = 1 days;
+        passiveXPAmount = 5;
+        lastUpdateTimestamp = block.timestamp;
 
         _tokenIdCounter.increment(); // Initialize counter to 1, first token will be 1
     }
@@ -437,6 +465,74 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     }
 
     /*///////////////////////////////////////////////////////////////
+                            CHAINLINK AUTOMATION
+    ///////////////////////////////////////////////////////////////*/
+
+    /// @dev Checks if upkeep is needed.
+    function checkUpkeep(bytes calldata /* checkData */) external view override returns (bool upkeepNeeded, bytes memory performData) {
+        upkeepNeeded = (block.timestamp - lastUpdateTimestamp) >= updateInterval;
+        performData = "";
+    }
+
+    /// @dev Performs upkeep if needed.
+    function performUpkeep(bytes calldata /* performData */) external override {
+        if ((block.timestamp - lastUpdateTimestamp) < updateInterval) {
+            return;
+        }
+        lastUpdateTimestamp = block.timestamp;
+        _distributePassiveXP();
+        emit UpkeepPerformed(block.timestamp);
+    }
+
+    /// @dev Distributes passive XP to eligible characters.
+    function _distributePassiveXP() internal {
+        uint256 lastTokenId = _tokenIdCounter.current() - 1;
+        for (uint256 i = 1; i <= lastTokenId; i++) {
+            if (_exists(i) && isAutoXPEnabled[i] && _isStaked(i)) {
+                if (_characterTraits[i].level < _MAX_LEVEL) {
+                    uint256 amount = passiveXPAmount;
+                    // Bonus based on level
+                    amount = amount.add(_characterTraits[i].level.div(10));
+                    
+                    _characterTraits[i].experience = _characterTraits[i].experience.add(amount);
+                    emit PassiveXPGranted(i, amount);
+                    _checkLevelUp(i);
+                }
+            }
+        }
+    }
+
+    /// @dev Checks if a character is staked.
+    function _isStaked(uint256 tokenId) internal view returns (bool) {
+        if (address(stakingContract) == address(0)) return false;
+        return stakingContract.tokenOwner(tokenId) != address(0);
+    }
+
+    /// @dev Enables auto-XP for a character.
+    function enableAutoXP(uint256 tokenId) external {
+        if (ownerOf(tokenId) != msg.sender) {
+            revert NotCharacterOwner(tokenId, msg.sender);
+        }
+        isAutoXPEnabled[tokenId] = true;
+        emit AutoXPEnabled(tokenId);
+    }
+
+    /// @dev Sets the update interval for passive XP.
+    function setUpdateInterval(uint256 newInterval) external onlyOwner {
+        updateInterval = newInterval;
+    }
+
+    /// @dev Sets the passive XP amount.
+    function setPassiveXPAmount(uint256 newAmount) external onlyOwner {
+        passiveXPAmount = newAmount;
+    }
+
+    /// @dev Sets the staking contract address.
+    function setStakingContract(address _stakingContract) external onlyOwner {
+        stakingContract = ICharacterStaking(_stakingContract);
+    }
+
+    /*///////////////////////////////////////////////////////////////
                             INTERNAL & PRIVATE
     ///////////////////////////////////////////////////////////////*/
 
@@ -460,5 +556,5 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     ///////////////////////////////////////////////////////////////*/
 
     /// @dev Storage gap to ensure compatibility during upgrades.
-    uint256[41] private __gap; // Reduced by 8 to account for new VRF variables
+    uint256[36] private __gap; // Reduced by 5 to account for new Automation variables
 }

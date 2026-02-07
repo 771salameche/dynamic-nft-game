@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.5.3] - 2026-02-07
+
+### Added
+- Created comprehensive integration tests for Chainlink Automation in `test/integration/Automation.test.ts`.
+- Verified passive XP distribution for staked characters.
+- Verified automated daily quest generation and completion.
+- Tested `checkUpkeep` and `performUpkeep` logic with time manipulation.
+
+## [0.5.2] - 2026-02-07
+
+### Added
+- Created `scripts/setup/register-upkeep.ts` for programmatic Chainlink Automation registration.
+- Created `scripts/setup/manage-upkeep.ts` for managing existing upkeeps (funding, pausing, etc.).
+- Created `scripts/test/trigger-upkeep.ts` for manual upkeep triggering and testing.
+- Created `scripts/monitoring/check-automation.ts` providing a monitoring dashboard for upkeep health, balance, and execution history.
+
+## [0.5.1] - 2026-02-07
+
+### Added
+- Created `DailyQuest.sol` for automated daily challenges.
+- Integrated Chainlink Automation to trigger daily quest generation.
+- Used Chainlink VRF for randomized quest types and difficulties.
+- Rewards include both character experience (XP) and `GameToken` rewards.
+- Quests have a 24-hour expiration period.
+
+## [0.5.0] - 2026-02-07
+
+### Added
+- Integrated Chainlink Automation into `GameCharacter.sol` for passive gameplay mechanics.
+- Implemented `checkUpkeep` and `performUpkeep` to automate passive XP distribution.
+- New state variables: `lastUpdateTimestamp`, `updateInterval`, `passiveXPAmount`, and `isAutoXPEnabled`.
+- New function `enableAutoXP` to allow players to opt-in for passive character progression.
+- Integration with `CharacterStaking` to ensure only staked characters receive passive XP.
+- New events: `UpkeepPerformed`, `PassiveXPGranted`, and `AutoXPEnabled`.
+
 ## [0.4.3] - 2026-02-07
 
 ### Added
