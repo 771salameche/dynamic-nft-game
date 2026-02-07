@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.3.2] - 2026-02-07
+
+### Added
+- Created `LootBox.sol` for random item drops using Chainlink VRF v2.
+- Items feature rarity tiers: Common (50%), Rare (30%), Epic (15%), Legendary (4%), Mythic (1%).
+- Items provide permanent stat boosts (Strength, Agility, Intelligence) to characters.
+- Players can open loot boxes using MATIC (0.01) or GAME tokens (10).
+- Admin functions to configure drop rates and prices.
+- Added `boostTraits` function to `GameCharacter.sol` to allow authorized contracts to increase character stats.
+
 ## [0.3.1] - 2026-02-07
 
 ### Added

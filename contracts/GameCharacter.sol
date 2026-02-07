@@ -279,6 +279,35 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         _checkLevelUp(tokenId);
     }
 
+    /// @dev Allows an authorized address to permanently boost a character's traits.
+    /// @param tokenId The unique identifier of the character to boost.
+    /// @param strengthBoost The amount of strength to add.
+    /// @param agilityBoost The amount of agility to add.
+    /// @param intelligenceBoost The amount of intelligence to add.
+    function boostTraits(
+        uint256 tokenId,
+        uint16 strengthBoost,
+        uint16 agilityBoost,
+        uint16 intelligenceBoost
+    ) external onlyAuthorized {
+        if (!_exists(tokenId)) {
+            revert CharacterDoesNotExist(tokenId);
+        }
+
+        _characterTraits[tokenId].strength = _characterTraits[tokenId].strength.add(strengthBoost);
+        _characterTraits[tokenId].agility = _characterTraits[tokenId].agility.add(agilityBoost);
+        _characterTraits[tokenId].intelligence = _characterTraits[tokenId].intelligence.add(intelligenceBoost);
+
+        emit TraitsUpdated(
+            tokenId,
+            _characterTraits[tokenId].level,
+            _characterTraits[tokenId].strength,
+            _characterTraits[tokenId].agility,
+            _characterTraits[tokenId].intelligence,
+            _characterTraits[tokenId].experience
+        );
+    }
+
     /// @dev Internal function to check if a character has enough experience to level up.
     ///      If so, levels up the character, increases stats, and emits events.
     /// @param tokenId The unique identifier of the character to check for level up.
