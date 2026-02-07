@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.6.1] - 2026-02-07
+
+### Added
+- Implemented advanced genetic algorithms in `CharacterBreeding.sol`.
+- Added dominant/recessive trait inheritance (75%/25% chance).
+- Introduced hidden genetic markers to `GameCharacter.sol` struct.
+- Implemented mutation system: 5% positive, 2% negative, 0.1% legendary.
+- Added special breeding bonuses for same-class parents, high-level parents, and max-stat parents.
+- Increased VRF random words request to 10 to support complex genetics.
+
 ## [0.6.0] - 2026-02-07
 
 ### Added

@@ -55,6 +55,16 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
                             STRUCTS
     ///////////////////////////////////////////////////////////////*/
 
+    /// @dev Represents hidden genetic markers for advanced inheritance.
+    struct GeneticMarkers {
+        bool strengthDominant;
+        bool agilityDominant;
+        bool intelligenceDominant;
+        uint8 hiddenStrength;
+        uint8 hiddenAgility;
+        uint8 hiddenIntelligence;
+    }
+
     /// @dev Represents the various traits of a game character.
     struct CharacterTraits {
         uint256 level;
@@ -65,6 +75,9 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         uint40 lastTrainedAt; // Timestamp of the last training session
         uint256 generation; // e.g., 1 for initial characters, 2 for offspring
         string characterClass; // e.g., Warrior, Mage, Rogue
+        GeneticMarkers genetics;
+        uint8 mutationCount;
+        uint8 breedCount; // Track number of times bred
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -268,7 +281,17 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
             experience: 0,
             lastTrainedAt: uint40(block.timestamp),
             generation: 1, // First generation characters
-            characterClass: characterClass
+            characterClass: characterClass,
+            genetics: GeneticMarkers({
+                strengthDominant: false,
+                agilityDominant: false,
+                intelligenceDominant: false,
+                hiddenStrength: 0,
+                hiddenAgility: 0,
+                hiddenIntelligence: 0
+            }),
+            mutationCount: 0,
+            breedCount: 0
         });
 
         uint256 requestId = COORDINATOR.requestRandomWords(
@@ -297,7 +320,10 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         uint256 agility,
         uint256 intelligence,
         uint256 parent1,
-        uint256 parent2
+        uint256 parent2,
+        GeneticMarkers memory genetics,
+        uint8 mutationCount,
+        uint256 startingLevel
     ) external onlyAuthorized returns (uint256) {
         uint256 newTokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
@@ -305,20 +331,25 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         _safeMint(to, newTokenId);
 
         _characterTraits[newTokenId] = CharacterTraits({
-            level: 1,
+            level: startingLevel,
             strength: strength,
             agility: agility,
             intelligence: intelligence,
             experience: 0,
             lastTrainedAt: uint40(block.timestamp),
             generation: generation,
-            characterClass: characterClass
+            characterClass: characterClass,
+            genetics: genetics,
+            mutationCount: mutationCount,
+            breedCount: 0
         });
 
         _parents[newTokenId] = [parent1, parent2];
+        _characterTraits[parent1].breedCount++;
+        _characterTraits[parent2].breedCount++;
 
         emit CharacterMinted(newTokenId, to, characterClass);
-        emit TraitsUpdated(newTokenId, 1, strength, agility, intelligence, 0);
+        emit TraitsUpdated(newTokenId, startingLevel, strength, agility, intelligence, 0);
 
         return newTokenId;
     }
