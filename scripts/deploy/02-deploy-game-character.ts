@@ -11,14 +11,25 @@ async function main() {
   const TOKEN_NAME = "GameCharacter";
   const TOKEN_SYMBOL = "GC";
 
+  // VRF Parameters (should be configured in .env or a config file)
+  const vrfCoordinator = process.env.VRF_COORDINATOR || "0x0000000000000000000000000000000000000000";
+  const subscriptionId = process.env.VRF_SUBSCRIPTION_ID || "0";
+  const keyHash = process.env.VRF_KEY_HASH || "0x0000000000000000000000000000000000000000000000000000000000000000";
+
   const GameCharacterFactory = await ethers.getContractFactory("GameCharacter");
 
   // Deploy Proxy
   console.log("Deploying GameCharacter proxy...");
-  const gameCharacter = (await upgrades.deployProxy(GameCharacterFactory, [TOKEN_NAME, TOKEN_SYMBOL], {
-    initializer: "initialize",
-    kind: "uups",
-  })) as unknown as GameCharacter;
+  const gameCharacter = (await upgrades.deployProxy(
+    GameCharacterFactory,
+    [TOKEN_NAME, TOKEN_SYMBOL, vrfCoordinator, subscriptionId, keyHash],
+    {
+      initializer: "initialize",
+      kind: "uups",
+      constructorArgs: [vrfCoordinator],
+      unsafeAllow: ["constructor", "state-variable-immutable"],
+    }
+  )) as unknown as GameCharacter;
 
   await gameCharacter.waitForDeployment();
   const proxyAddress = await gameCharacter.getAddress();
