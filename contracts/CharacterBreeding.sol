@@ -70,7 +70,7 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
 
     uint64 public s_subscriptionId;
     bytes32 public keyHash;
-    uint32 public callbackGasLimit = 1000000;
+    uint32 public callbackGasLimit = 2000000;
     uint16 public requestConfirmations = 3;
     uint32 public numWords = 10;
 
@@ -197,6 +197,17 @@ contract CharacterBreeding is VRFConsumerBaseV2, Ownable, ReentrancyGuard {
         delete requestToBreeder[requestId];
         delete requestToParent1[requestId];
         delete requestToParent2[requestId];
+
+        if (address(achievementTrigger) != address(0)) {
+            achievementTrigger.checkBreedingAchievements(
+                breeder, 
+                offspringId, 
+                offspringGen, 
+                strength, 
+                agility, 
+                intelligence
+            );
+        }
 
         emit CharacterBred(p1Id, p2Id, offspringId, offspringGen);
     }
