@@ -15,6 +15,11 @@ interface ICharacterStaking {
     function tokenOwner(uint256 tokenId) external view returns (address);
 }
 
+interface IAchievementTrigger {
+    function checkMintAchievements(address player, uint256 tokenId) external;
+    function checkLevelAchievements(address player, uint256 tokenId, uint256 level) external;
+}
+
 /// @title GameCharacter
 /// @dev An ERC721Upgradeable contract for game characters with dynamic traits.
 contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, VRFConsumerBaseV2, AutomationCompatible {
@@ -141,6 +146,9 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     /// @dev Emitted when auto-XP is enabled for a character.
     event AutoXPEnabled(uint256 indexed tokenId);
 
+    /// @dev Emitted for debugging character class validation.
+    event ClassValidationDebug(string providedClass, bytes32 providedHash, bool isValid);
+
     /*///////////////////////////////////////////////////////////////
                             STORAGE
     ///////////////////////////////////////////////////////////////*/
@@ -182,6 +190,7 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     uint256 public passiveXPAmount;
     mapping(uint256 => bool) public isAutoXPEnabled;
     ICharacterStaking public stakingContract;
+    IAchievementTrigger public achievementTrigger;
 
     /*///////////////////////////////////////////////////////////////
                             MODIFIERS
@@ -225,7 +234,7 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         COORDINATOR = VRFCoordinatorV2Interface(vrfCoordinator);
         s_subscriptionId = subscriptionId;
         keyHash = _keyHash;
-        callbackGasLimit = 200000;
+        callbackGasLimit = 2000000;
         requestConfirmations = 3;
         numWords = 3;
 
@@ -268,7 +277,11 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     /// @param characterClass The class of the character to mint (e.g., "Warrior", "Mage", "Rogue").
     /// @return The tokenId of the newly minted character.
     function mintCharacter(string memory characterClass) public onlyOwner nonReentrant returns (uint256) {
-        if (!_isValidCharacterClass(characterClass)) {
+        bytes32 hash = keccak256(bytes(characterClass));
+        bool valid = _isValidCharacterClass(characterClass);
+        emit ClassValidationDebug(characterClass, hash, valid);
+
+        if (!valid) {
             revert InvalidCharacterClass(characterClass);
         }
 
@@ -312,6 +325,10 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
 
         emit MintRequested(requestId, newTokenId);
         emit CharacterMinted(newTokenId, msg.sender, characterClass);
+
+        if (address(achievementTrigger) != address(0)) {
+            achievementTrigger.checkMintAchievements(msg.sender, newTokenId);
+        }
 
         return newTokenId;
     }
@@ -361,6 +378,10 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
             emit MutationApplied(newTokenId, mutationCount);
         }
 
+        if (address(achievementTrigger) != address(0)) {
+            achievementTrigger.checkMintAchievements(to, newTokenId);
+        }
+
         return newTokenId;
     }
 
@@ -378,7 +399,7 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     ///      Automatically triggers a level-up check.
     /// @param tokenId The unique identifier of the character to gain experience.
     /// @param xpAmount The amount of experience to add.
-    function gainExperience(uint256 tokenId, uint16 xpAmount) public nonReentrant onlyAuthorized {
+    function gainExperience(uint256 tokenId, uint16 xpAmount) public onlyAuthorized {
         if (!_exists(tokenId)) {
             revert CharacterDoesNotExist(tokenId);
         }
@@ -455,6 +476,10 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
                 _characterTraits[tokenId].intelligence = _characterTraits[tokenId].intelligence.add(2);
 
                 emit LevelUp(tokenId, oldLevel, _characterTraits[tokenId].level);
+
+                if (address(achievementTrigger) != address(0)) {
+                    achievementTrigger.checkLevelAchievements(ownerOf(tokenId), tokenId, _characterTraits[tokenId].level);
+                }
 
                 // Update oldLevel to new current level for next iteration or final TraitsUpdated event
                 oldLevel = uint8(_characterTraits[tokenId].level);
@@ -630,6 +655,66 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         stakingContract = ICharacterStaking(_stakingContract);
     }
 
+    /// @dev Sets the achievement trigger contract address.
+    function setAchievementTrigger(address _trigger) external onlyOwner {
+        achievementTrigger = IAchievementTrigger(_trigger);
+    }
+
+    /**
+     * @dev Admin function to mint a character directly to a player.
+     *      Bypasses character class validation and achievement logic.
+     * @param to The address to receive the character.
+     * @param characterClass The class of the character.
+     */
+    function adminMintCharacter(
+        address to, 
+        string memory characterClass
+    ) external onlyOwner nonReentrant returns (uint256) {
+        uint256 newTokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+
+        _safeMint(to, newTokenId);
+
+        _characterTraits[newTokenId] = CharacterTraits({
+            level: 1,
+            strength: 10,
+            agility: 10,
+            intelligence: 10,
+            experience: 0,
+            lastTrainedAt: uint40(block.timestamp),
+            generation: 1,
+            characterClass: characterClass,
+            genetics: GeneticMarkers({
+                strengthDominant: false,
+                agilityDominant: false,
+                intelligenceDominant: false,
+                hiddenStrength: 0,
+                hiddenAgility: 0,
+                hiddenIntelligence: 0
+            }),
+            mutationCount: 0,
+            breedCount: 0,
+            isFused: false
+        });
+
+        emit CharacterMinted(newTokenId, to, characterClass);
+
+        uint256 requestId = COORDINATOR.requestRandomWords(
+            keyHash,
+            s_subscriptionId,
+            requestConfirmations,
+            callbackGasLimit,
+            numWords
+        );
+
+        requestToTokenId[requestId] = newTokenId;
+        requestToMinter[requestId] = to;
+
+        emit MintRequested(requestId, newTokenId);
+
+        return newTokenId;
+    }
+
     /*///////////////////////////////////////////////////////////////
                             INTERNAL & PRIVATE
     ///////////////////////////////////////////////////////////////*/
@@ -638,10 +723,11 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     /// @param characterClass The class string to validate.
     /// @return True if the class is valid, false otherwise.
     function _isValidCharacterClass(string memory characterClass) internal pure returns (bool) {
+        bytes32 classHash = keccak256(bytes(characterClass));
         return (
-            keccak256(abi.encodePacked(characterClass)) == keccak256(abi.encodePacked("Warrior")) ||
-            keccak256(abi.encodePacked(characterClass)) == keccak256(abi.encodePacked("Mage")) ||
-            keccak256(abi.encodePacked(characterClass)) == keccak256(abi.encodePacked("Rogue"))
+            classHash == keccak256(bytes("Warrior")) ||
+            classHash == keccak256(bytes("Mage")) ||
+            classHash == keccak256(bytes("Rogue"))
         );
     }
 
@@ -654,5 +740,5 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     ///////////////////////////////////////////////////////////////*/
 
     /// @dev Storage gap to ensure compatibility during upgrades.
-    uint256[34] private __gap; // Reduced by 1 to account for isFused in struct (actually struct grows, but just being safe)
+    uint256[33] private __gap; // Reduced by 1 to account for achievementTrigger
 }

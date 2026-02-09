@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.7.2] - 2026-02-07
+
+### Added
+- Created `AchievementBadge.sol`, an ERC721 Soulbound NFT contract (ERC5192).
+- Badges are automatically minted by `AchievementTracker` when achievements are unlocked.
+- Implemented dynamic on-chain SVG generation for badge metadata, with unique colors per tier.
+- Overridden transfer and approval functions to enforce soulbound status.
+- Added `setAchievementBadge` function to `AchievementTracker.sol` for configuration.
+
+## [0.7.1] - 2026-02-07
+
+### Added
+- Created `AchievementTrigger.sol` to centralize achievement checking logic.
+- Integrated achievement triggers into `GameCharacter.sol`, `CharacterBreeding.sol`, and `CharacterStaking.sol`.
+- Created `scripts/setup/create-achievements.ts` to populate the tracker with 18 predefined achievements across Collection, Progression, Breeding, and Staking categories.
+- Implemented specific trigger logic for minting, leveling, breeding, fusion, and staking milestones.
+
+## [0.7.0] - 2026-02-07
+
+### Added
+- Created `AchievementTracker.sol` for a comprehensive on-chain achievement system.
+- Supports achievement tiers (Bronze to Diamond) and categories (Combat, Breeding, etc.).
+- Rewards players with character XP and `GameToken` rewards upon unlocking achievements.
+- Automated progress tracking and auto-unlocking functionality.
+- Integrated with `GameCharacter` and `GameToken` for rewards distribution.
+
 ## [0.6.3] - 2026-02-07
 
 ### Added
