@@ -2,37 +2,50 @@
 
 import { useReadContract, useAccount } from 'wagmi';
 import { ACHIEVEMENT_ADDRESS, ACHIEVEMENT_ABI } from '@/lib/contracts';
+import { Address } from 'viem';
 
-export function usePlayerAchievements() {
-  const { address } = useAccount();
-  const { data, isLoading, refetch } = useReadContract({
-    address: ACHIEVEMENT_ADDRESS,
-    abi: ACHIEVEMENT_ABI,
-    functionName: 'getPlayerAchievements',
-    args: address ? [address] : undefined,
-  });
+export function useAchievements() {
+  // 1. Get player achievements
+  const usePlayerAchievements = (owner?: Address) => {
+    const { address: connectedAddress } = useAccount();
+    const targetAddress = owner || connectedAddress;
 
-  return { playerAchievements: data, isLoading, refetch };
-}
+    return useReadContract({
+      address: ACHIEVEMENT_ADDRESS,
+      abi: ACHIEVEMENT_ABI,
+      functionName: 'getPlayerAchievements',
+      args: targetAddress ? [targetAddress] : undefined,
+      query: {
+        enabled: !!targetAddress,
+      }
+    });
+  };
 
-export function useAchievementMetadata(achievementId: bigint) {
-  const { data, isLoading } = useReadContract({
-    address: ACHIEVEMENT_ADDRESS,
-    abi: ACHIEVEMENT_ABI,
-    functionName: 'achievements',
-    args: [achievementId],
-  });
+  // 2. Get all achievements metadata (requires looping or specific contract view)
+  const useAllAchievements = () => {
+    return useReadContract({
+      address: ACHIEVEMENT_ADDRESS,
+      abi: ACHIEVEMENT_ABI,
+      functionName: 'totalAchievements',
+    });
+  };
 
-  return { achievement: data, isLoading };
-}
+  // 3. Get achievement progress
+  const useAchievementProgress = (owner: Address, achievementId: bigint) => {
+    return useReadContract({
+      address: ACHIEVEMENT_ADDRESS,
+      abi: ACHIEVEMENT_ABI,
+      functionName: 'getAchievementProgress',
+      args: [owner, achievementId],
+      query: {
+        enabled: !!owner && achievementId !== undefined,
+      }
+    });
+  };
 
-export function useAchievementsByCategory(category: string) {
-  const { data, isLoading } = useReadContract({
-    address: ACHIEVEMENT_ADDRESS,
-    abi: ACHIEVEMENT_ABI,
-    functionName: 'getAchievementsByCategory',
-    args: [category],
-  });
-
-  return { achievements: data, isLoading };
+  return {
+    usePlayerAchievements,
+    useAllAchievements,
+    useAchievementProgress,
+  };
 }

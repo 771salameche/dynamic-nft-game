@@ -6,9 +6,8 @@ import {
     useWriteContract, 
     useWaitForTransactionReceipt,
     useAccount,
-    useWatchContractEvent
 } from 'wagmi';
-import { erc721Abi } from 'viem';
+import { Address, erc721Abi } from 'viem';
 import { STAKING_ADDRESS, STAKING_ABI, GAME_CHARACTER_ADDRESS } from '@/lib/contracts';
 import { toast } from 'react-hot-toast';
 
@@ -17,10 +16,19 @@ export function useStaking() {
     const { writeContract, data: hash, error, isPending } = useWriteContract();
     const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
+    // 1. Stake character (with approval)
     const stake = async (tokenId: bigint) => {
         try {
-            // In a real UI, we should check allowance/approval first
-            // For brevity, we assume approval is handled or requested
+            // In a real production app, check getApproved first
+            await writeContract({
+                address: GAME_CHARACTER_ADDRESS,
+                abi: erc721Abi,
+                functionName: 'approve',
+                args: [STAKING_ADDRESS, tokenId],
+            });
+
+            // Note: In a UI, we'd wait for approval hash before staking
+            // For this hook, we assume the user confirms both or handles sequential flow in UI
             await writeContract({
                 address: STAKING_ADDRESS,
                 abi: STAKING_ABI,
@@ -32,6 +40,7 @@ export function useStaking() {
         }
     };
 
+    // 2. Unstake
     const unstake = async (tokenId: bigint) => {
         try {
             await writeContract({
@@ -45,6 +54,7 @@ export function useStaking() {
         }
     };
 
+    // 3. Claim rewards
     const claimRewards = async () => {
         try {
             await writeContract({
@@ -68,29 +78,65 @@ export function useStaking() {
         claimRewards,
         isLoading: isPending || isConfirming,
         hash,
+        error
     };
 }
 
-export function useUserStakes() {
-    const { address } = useAccount();
-    const { data, isLoading, refetch } = useReadContract({
+// 4. Get staked characters
+export function useStakedCharacters(owner?: Address) {
+    const { address: connectedAddress } = useAccount();
+    const targetAddress = owner || connectedAddress;
+
+    return useReadContract({
         address: STAKING_ADDRESS,
         abi: STAKING_ABI,
         functionName: 'getUserStakes',
-        args: address ? [address] : undefined,
+        args: targetAddress ? [targetAddress] : undefined,
+        query: {
+            enabled: !!targetAddress,
+        }
     });
-
-    return { stakes: data, isLoading, refetch };
 }
 
-export function useClaimableRewards() {
-    const { address } = useAccount();
-    const { data, isLoading, refetch } = useReadContract({
+// 5. Calculate pending rewards (Real-time calculation)
+export function usePendingRewards(owner?: Address) {
+    const { address: connectedAddress } = useAccount();
+    const targetAddress = owner || connectedAddress;
+    
+    const { data: baseRewardRate } = useReadContract({
         address: STAKING_ADDRESS,
         abi: STAKING_ABI,
-        functionName: 'calculateRewards',
-        args: address ? [address] : undefined,
+        functionName: 'baseRewardRate',
     });
 
-    return { claimableAmount: data as bigint | undefined, isLoading, refetch };
+    const { data: stakes } = useReadContract({
+        address: STAKING_ADDRESS,
+        abi: STAKING_ABI,
+        functionName: 'getUserStakes',
+        args: targetAddress ? [targetAddress] : undefined,
+    });
+
+    const [realTimeRewards, setRealTimeRewards] = useState<bigint>(0n);
+
+    useEffect(() => {
+        if (!stakes || !baseRewardRate) return;
+
+        const interval = setInterval(() => {
+            const now = BigInt(Math.floor(Date.now() / 1000));
+            let total = 0n;
+
+            (stakes as any[]).forEach(stake => {
+                const timeDiff = now - BigInt(stake.lastClaimAt);
+                if (timeDiff > 0n) {
+                    total += timeDiff * (baseRewardRate as bigint);
+                }
+            });
+
+            setRealTimeRewards(total);
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [stakes, baseRewardRate]);
+
+    return { realTimeRewards };
 }

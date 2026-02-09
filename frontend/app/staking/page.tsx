@@ -1,7 +1,7 @@
 'use client';
 
-import { useStaking, useUserStakes, useClaimableRewards } from '@/hooks/useStaking';
-import { useUserCharacters } from '@/hooks/useGameCharacter';
+import { useStaking, useStakedCharacters, usePendingRewards } from '@/hooks/useStaking';
+import { useOwnedCharacters } from '@/hooks/useGameCharacter';
 import { ConnectButton } from '@/components/web3/ConnectButton';
 import { useAccount } from 'wagmi';
 import { formatTokenAmount } from '@/lib/utils';
@@ -9,9 +9,9 @@ import { formatTokenAmount } from '@/lib/utils';
 export default function StakingPage() {
   const { isConnected } = useAccount();
   const { stake, unstake, claimRewards, isLoading } = useStaking();
-  const { stakes, isLoading: isLoadingStakes } = useUserStakes();
-  const { claimableAmount, isLoading: isLoadingRewards } = useClaimableRewards();
-  const { balance: charBalance } = useUserCharacters();
+  const { data: stakes, isLoading: isLoadingStakes } = useStakedCharacters();
+  const { realTimeRewards: claimableAmount } = usePendingRewards();
+  const { balance: charBalance } = useOwnedCharacters();
 
   return (
     <div className="min-h-screen bg-slate-950 text-white p-8">
