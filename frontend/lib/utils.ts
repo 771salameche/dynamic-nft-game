@@ -13,3 +13,12 @@ export function formatAddress(address: string) {
 export function formatTokenAmount(amount: bigint, decimals: number = 18) {
   return (Number(amount) / 10 ** decimals).toFixed(2);
 }
+
+export function formatDate(timestamp: bigint | number) {
+  const date = new Date(Number(timestamp) * 1000);
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
