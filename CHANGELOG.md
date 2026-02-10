@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.8.4] - 2026-02-10
+
+### Added
+- Created a comprehensive Staking Dashboard with real-time reward tracking.
+- Implemented `StakedCharacterCard.tsx` with animated progress bars for milestone tracking.
+- Created `StakingInfoPanel.tsx` to explain mechanics, reward rates, and multipliers.
+- Added `StatCard.tsx` as a reusable UI component for dashboard metrics.
+- Implemented `useCurrentTime` hook to provide reactive, pure timestamps for UI consistency.
+- Added `useCalculateRewards` hook for per-token reward discovery.
+- Implemented `useOwnedTokenIds` hook for automated character discovery using event logs.
+
+### Changed
+- Refactored `StakingPage` with a professional, grid-based dashboard layout.
+- Enhanced `CharacterCard.tsx` to support contextual actions (Stake/Unstake/Details).
+- Optimized reward calculation logic to provide 1-second update frequency in the UI.
+
+### Fixed
+- Resolved React purity issues with `Date.now()` calls in component render cycles.
+- Fixed explicit `any` types across staking hooks and components for better type safety.
+- Resolved cascading render issues by optimizing state updates in effects.
+
+## [0.8.3] - 2026-02-10
+
+### Added
+- Created professional Hero Summoning interface for character minting.
+- Implemented `ClassCard.tsx` with detailed stat visualization and selection animations.
+- Created `CharacterPreview.tsx` featuring animated 3D-like character sprites.
+- Added interactive VRF status visualization ("Summoning Randomness") during trait generation.
+- Implemented gas estimation for minting transactions in the UI.
+- Created reusable `Button.tsx` UI component following shadcn/ui standards.
+
+### Changed
+- Redesigned `MintPage` with a dual-pane layout (Selection vs. Preview).
+- Updated `useGameCharacter.ts` hook to expose transaction confirmation and success states.
+
+### Fixed
+- Fixed unescaped entities in JSX templates.
+- Resolved unused import warnings in the minting module.
+
 ## [0.7.2] - 2026-02-07
 
 ### Added
