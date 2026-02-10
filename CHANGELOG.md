@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.8.5] - 2026-02-10
+
+### Added
+- Created advanced Laboratory interface for Breeding and Fusion.
+- Implemented `OffspringPreview.tsx` with genetic potential and stat prediction.
+- Created `CharacterSelectionModal.tsx` for easy parent selection with trait previews.
+- Implemented `FusionPanel.tsx` for high-level character evolution with burn warnings.
+- Created `BreedingHistorySection.tsx` to visualize character lineages and ancestry.
+- Added `Dialog.tsx` UI component for modal-based character selection.
+- Implemented `useBreedingCosts`, `useCanFuse`, and updated lineage hooks.
+
+### Changed
+- Redesigned `BreedingPage` with a professional Laboratory console layout.
+- Improved `useBreeding` hooks to fetch dynamic costs from the blockchain.
+
+### Fixed
+- Fixed explicit `any` types in breeding hooks.
+- Resolved unused import warnings across the laboratory module.
+
 ## [0.8.4] - 2026-02-10
 
 ### Added

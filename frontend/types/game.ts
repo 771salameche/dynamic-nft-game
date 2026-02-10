@@ -46,3 +46,10 @@ export interface PlayerAchievement {
   progress: bigint;
   isUnlocked: boolean;
 }
+
+export interface BreedingPair {
+  parent1: bigint;
+  parent2: bigint;
+  offspring: bigint;
+  timestamp: bigint;
+}

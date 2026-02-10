@@ -1,13 +1,12 @@
 'use client';
 
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
-import { BREEDING_ADDRESS, BREEDING_ABI, GAME_TOKEN_ADDRESS, GAME_TOKEN_ABI } from '@/lib/contracts';
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { BREEDING_ADDRESS, BREEDING_ABI, GAME_TOKEN_ADDRESS } from '@/lib/contracts';
 import { toast } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { erc20Abi } from 'viem';
 
 export function useBreeding() {
-  const { address } = useAccount();
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
@@ -35,8 +34,9 @@ export function useBreeding() {
         functionName: 'breed',
         args: [parent1Id, parent2Id],
       });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to breed');
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error(error.message || 'Failed to breed');
     }
   };
 
@@ -58,8 +58,9 @@ export function useBreeding() {
         functionName: 'fuse',
         args: [token1Id, token2Id],
       });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to fuse');
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error(error.message || 'Failed to fuse');
     }
   };
 
@@ -100,4 +101,68 @@ export function useBreedingHistory(tokenId: bigint) {
         enabled: !!tokenId,
     }
   });
+}
+
+// 5. Check fusion eligibility
+
+export function useCanFuse(token1: bigint, token2: bigint) {
+
+  return useReadContract({
+
+    address: BREEDING_ADDRESS,
+
+    abi: BREEDING_ABI,
+
+    functionName: 'canFuse',
+
+    args: [token1, token2],
+
+    query: {
+
+        enabled: !!token1 && !!token2,
+
+    }
+
+  });
+
+}
+
+
+
+// 6. Get costs
+
+export function useBreedingCosts() {
+
+  const { data: breedingCost } = useReadContract({
+
+    address: BREEDING_ADDRESS,
+
+    abi: BREEDING_ABI,
+
+    functionName: 'breedingCost',
+
+  });
+
+
+
+  const { data: fusionCost } = useReadContract({
+
+    address: BREEDING_ADDRESS,
+
+    abi: BREEDING_ABI,
+
+    functionName: 'fusionCost',
+
+  });
+
+
+
+  return { 
+
+    breedingCost: (breedingCost as bigint) || 100n * 10n**18n,
+
+    fusionCost: (fusionCost as bigint) || 500n * 10n**18n 
+
+  };
+
 }
