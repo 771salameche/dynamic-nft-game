@@ -7,6 +7,131 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.8.9] - 2026-02-10
+
+### Added
+- Completed Frontend ecosystem integration and polishing.
+- Implemented `TransactionStatus.tsx` for real-time blockchain feedback.
+- Added comprehensive SEO metadata to `layout.tsx` for social sharing and search visibility.
+- Refactored global layout into a Server Component architecture for better performance.
+- Created `Web3Provider.tsx` to centralize client-side blockchain providers.
+
+### Changed
+- Configured explicit responsive breakpoints in Tailwind CSS v4 theme.
+- Enhanced accessibility by adding semantic HTML tags across the layout.
+
+### Fixed
+- Cleaned up unused imports and refined TypeScript types in Web3 components.
+
+## [0.8.8] - 2026-02-10
+
+### Added
+- Created an engaging, professional landing page.
+- Implemented `AnimatedCharacters.tsx` with particle effects and interactive hero previews.
+- Created `FeatureCard.tsx` to highlight core ecosystem mechanics.
+- Implemented `Step.tsx` for visual "How it Works" progression.
+- Created `ActivityFeed.tsx` with simulated real-time on-chain events (mints, breeding, staking).
+- Integrated scroll-triggered animations using Framer Motion.
+
+### Fixed
+- Resolved hydration mismatch errors in the landing page by ensuring client-side rendering for random elements.
+- Optimized performance by lazy-loading heavy animated components.
+
+## [0.8.7] - 2026-02-10
+
+### Added
+- Created User Profile page with comprehensive player statistics and hero collection view.
+- Implemented Global Leaderboard with category-based rankings (Level, Power, Staking, Breeding).
+- Added `ActivityTimeline.tsx` to visualize recent player actions and milestones.
+- Implemented `PodiumCard.tsx` and `LeaderboardRow.tsx` for professional ranking display.
+- Added `useLeaderboard` and `useYourRank` hooks for competitive data discovery.
+- Implemented `useStakingStats` hook for profile-level staking summaries.
+
+### Changed
+- Enhanced `utils.ts` with `truncateAddress` helper for cleaner UI display.
+- Optimized `useStaking.ts` with per-token reward simulation for better real-time accuracy.
+
+### Fixed
+- Resolved critical build errors related to TypeScript type conversions in multicall results.
+- Fixed type mismatch in staking reward calculation hook.
+- Resolved cascading render issues in profile activity components.
+
+## [0.8.6] - 2026-02-10
+
+### Added
+- Created comprehensive Achievement Tracker interface.
+- Implemented `AchievementCard.tsx` with tier-based styling and progress tracking.
+- Added `CircularProgress.tsx` for visual completion metrics.
+- Implemented real-time `AchievementNotification.tsx` using custom toasts.
+- Optimized metadata fetching using `useReadContracts` multicall for high performance.
+- Added `useAchievementNotifications` hook to listen for on-chain achievement unlocks.
+- Created `AchievementsPage` with category filtering and search functionality.
+
+### Changed
+- Refactored `useAchievements.ts` to support efficient batch fetching and player progress mapping.
+- Enhanced `utils.ts` with `formatDate` helper for blockchain timestamps.
+
+### Fixed
+- Resolved build issues and linting warnings in the achievement module.
+
+## [0.8.5] - 2026-02-10
+
+### Added
+- Created advanced Laboratory interface for Breeding and Fusion.
+- Implemented `OffspringPreview.tsx` with genetic potential and stat prediction.
+- Created `CharacterSelectionModal.tsx` for easy parent selection with trait previews.
+- Implemented `FusionPanel.tsx` for high-level character evolution with burn warnings.
+- Created `BreedingHistorySection.tsx` to visualize character lineages and ancestry.
+- Added `Dialog.tsx` UI component for modal-based character selection.
+- Implemented `useBreedingCosts`, `useCanFuse`, and updated lineage hooks.
+
+### Changed
+- Redesigned `BreedingPage` with a professional Laboratory console layout.
+- Improved `useBreeding` hooks to fetch dynamic costs from the blockchain.
+
+### Fixed
+- Fixed explicit `any` types in breeding hooks.
+- Resolved unused import warnings across the laboratory module.
+
+## [0.8.4] - 2026-02-10
+
+### Added
+- Created a comprehensive Staking Dashboard with real-time reward tracking.
+- Implemented `StakedCharacterCard.tsx` with animated progress bars for milestone tracking.
+- Created `StakingInfoPanel.tsx` to explain mechanics, reward rates, and multipliers.
+- Added `StatCard.tsx` as a reusable UI component for dashboard metrics.
+- Implemented `useCurrentTime` hook to provide reactive, pure timestamps for UI consistency.
+- Added `useCalculateRewards` hook for per-token reward discovery.
+- Implemented `useOwnedTokenIds` hook for automated character discovery using event logs.
+
+### Changed
+- Refactored `StakingPage` with a professional, grid-based dashboard layout.
+- Enhanced `CharacterCard.tsx` to support contextual actions (Stake/Unstake/Details).
+- Optimized reward calculation logic to provide 1-second update frequency in the UI.
+
+### Fixed
+- Resolved React purity issues with `Date.now()` calls in component render cycles.
+- Fixed explicit `any` types across staking hooks and components for better type safety.
+- Resolved cascading render issues by optimizing state updates in effects.
+
+## [0.8.3] - 2026-02-10
+
+### Added
+- Created professional Hero Summoning interface for character minting.
+- Implemented `ClassCard.tsx` with detailed stat visualization and selection animations.
+- Created `CharacterPreview.tsx` featuring animated 3D-like character sprites.
+- Added interactive VRF status visualization ("Summoning Randomness") during trait generation.
+- Implemented gas estimation for minting transactions in the UI.
+- Created reusable `Button.tsx` UI component following shadcn/ui standards.
+
+### Changed
+- Redesigned `MintPage` with a dual-pane layout (Selection vs. Preview).
+- Updated `useGameCharacter.ts` hook to expose transaction confirmation and success states.
+
+### Fixed
+- Fixed unescaped entities in JSX templates.
+- Resolved unused import warnings in the minting module.
+
 ## [0.7.2] - 2026-02-07
 
 ### Added
