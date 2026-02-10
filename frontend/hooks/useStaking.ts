@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { 
     useReadContract, 
     useWriteContract, 
@@ -10,16 +10,15 @@ import {
 import { Address, erc721Abi } from 'viem';
 import { STAKING_ADDRESS, STAKING_ABI, GAME_CHARACTER_ADDRESS } from '@/lib/contracts';
 import { toast } from 'react-hot-toast';
+import { StakeInfo } from '@/types/game';
 
 export function useStaking() {
-    const { address } = useAccount();
     const { writeContract, data: hash, error, isPending } = useWriteContract();
     const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
     // 1. Stake character (with approval)
     const stake = async (tokenId: bigint) => {
         try {
-            // In a real production app, check getApproved first
             await writeContract({
                 address: GAME_CHARACTER_ADDRESS,
                 abi: erc721Abi,
@@ -27,16 +26,15 @@ export function useStaking() {
                 args: [STAKING_ADDRESS, tokenId],
             });
 
-            // Note: In a UI, we'd wait for approval hash before staking
-            // For this hook, we assume the user confirms both or handles sequential flow in UI
             await writeContract({
                 address: STAKING_ADDRESS,
                 abi: STAKING_ABI,
                 functionName: 'stake',
                 args: [tokenId],
             });
-        } catch (err: any) {
-            toast.error(err.message || 'Failed to stake');
+        } catch (err: unknown) {
+            const error = err as Error;
+            toast.error(error.message || 'Failed to stake');
         }
     };
 
@@ -49,8 +47,9 @@ export function useStaking() {
                 functionName: 'unstake',
                 args: [tokenId],
             });
-        } catch (err: any) {
-            toast.error(err.message || 'Failed to unstake');
+        } catch (err: unknown) {
+            const error = err as Error;
+            toast.error(error.message || 'Failed to unstake');
         }
     };
 
@@ -62,8 +61,9 @@ export function useStaking() {
                 abi: STAKING_ABI,
                 functionName: 'claimRewards',
             });
-        } catch (err: any) {
-            toast.error(err.message || 'Failed to claim rewards');
+        } catch (err: unknown) {
+            const error = err as Error;
+            toast.error(error.message || 'Failed to claim rewards');
         }
     };
 
@@ -82,7 +82,6 @@ export function useStaking() {
     };
 }
 
-// 4. Get staked characters
 export function useStakedCharacters(owner?: Address) {
     const { address: connectedAddress } = useAccount();
     const targetAddress = owner || connectedAddress;
@@ -98,7 +97,6 @@ export function useStakedCharacters(owner?: Address) {
     });
 }
 
-// 5. Calculate pending rewards (Real-time calculation)
 export function usePendingRewards(owner?: Address) {
     const { address: connectedAddress } = useAccount();
     const targetAddress = owner || connectedAddress;
@@ -125,7 +123,7 @@ export function usePendingRewards(owner?: Address) {
             const now = BigInt(Math.floor(Date.now() / 1000));
             let total = 0n;
 
-            (stakes as any[]).forEach(stake => {
+            (stakes as StakeInfo[]).forEach(stake => {
                 const timeDiff = now - BigInt(stake.lastClaimAt);
                 if (timeDiff > 0n) {
                     total += timeDiff * (baseRewardRate as bigint);
@@ -139,4 +137,32 @@ export function usePendingRewards(owner?: Address) {
     }, [stakes, baseRewardRate]);
 
     return { realTimeRewards };
+}
+
+export function useCalculateRewards(tokenId: bigint) {
+    return useReadContract({
+        address: STAKING_ADDRESS,
+        abi: STAKING_ABI,
+        functionName: 'calculateRewards',
+        args: [tokenId],
+        query: {
+            enabled: !!tokenId,
+            refetchInterval: 5000,
+        }
+    });
+}
+
+export function useCurrentTime() {
+    const [now, setNow] = useState(0);
+    
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setNow(Math.floor(Date.now() / 1000));
+        const interval = setInterval(() => {
+            setNow(Math.floor(Date.now() / 1000));
+        }, 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    return now;
 }

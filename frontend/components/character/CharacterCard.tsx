@@ -13,9 +13,11 @@ interface CharacterCardProps {
   tokenId: bigint;
   onClick?: () => void;
   showActions?: boolean;
+  onStake?: (tokenId: bigint) => void;
+  onUnstake?: (tokenId: bigint) => void;
 }
 
-export function CharacterCard({ tokenId, onClick, showActions }: CharacterCardProps) {
+export function CharacterCard({ tokenId, onClick, showActions, onStake, onUnstake }: CharacterCardProps) {
   const { data: traits, isLoading } = useCharacterTraits(tokenId);
   const { data: owner } = useReadContract({
     address: GAME_CHARACTER_ADDRESS,
@@ -90,12 +92,26 @@ export function CharacterCard({ tokenId, onClick, showActions }: CharacterCardPr
       {/* Action Overlay (Hidden by default) */}
       {showActions && (
         <div className="absolute inset-0 bg-slate-950/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-6 space-y-3">
-          <button className="w-full py-2 bg-purple-600 rounded-lg font-bold hover:bg-purple-500 transition-colors">
+          <button 
+            onClick={(e) => { e.stopPropagation(); onClick?.(); }}
+            className="w-full py-2 bg-purple-600 rounded-lg font-bold hover:bg-purple-500 transition-colors"
+          >
             View Details
           </button>
-          {isOwner && (
-            <button className="w-full py-2 bg-slate-800 rounded-lg font-bold hover:bg-slate-700 transition-colors">
-              Stake
+          {isOwner && onStake && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onStake(tokenId); }}
+              className="w-full py-2 bg-emerald-600 rounded-lg font-bold hover:bg-emerald-500 transition-colors"
+            >
+              Stake Character
+            </button>
+          )}
+          {isOwner && onUnstake && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onUnstake(tokenId); }}
+              className="w-full py-2 bg-red-600 rounded-lg font-bold hover:bg-red-500 transition-colors"
+            >
+              Unstake
             </button>
           )}
         </div>

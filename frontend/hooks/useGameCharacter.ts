@@ -1,10 +1,38 @@
 'use client';
 
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount, useWatchContractEvent } from 'wagmi';
 import { GAME_CHARACTER_ADDRESS, GAME_CHARACTER_ABI } from '@/lib/contracts';
 import { toast } from 'react-hot-toast';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Address } from 'viem';
+
+// ... (previous functions)
+
+export function useOwnedTokenIds(owner?: Address) {
+  const { address: connectedAddress } = useAccount();
+  const targetAddress = owner || connectedAddress;
+  const [tokenIds, setTokenIds] = useState<bigint[]>([]);
+
+  // Listen for Mint events to track IDs (simplified discovery)
+  useWatchContractEvent({
+    address: GAME_CHARACTER_ADDRESS,
+    abi: GAME_CHARACTER_ABI,
+    eventName: 'CharacterMinted',
+    onLogs(logs) {
+      logs.forEach((log) => {
+        const { owner: mintOwner, tokenId } = log.args as { owner: Address, tokenId: bigint };
+        if (mintOwner === targetAddress && !tokenIds.includes(tokenId)) {
+          setTokenIds(prev => [...prev, tokenId]);
+        }
+      });
+    },
+  });
+
+  // Also initial fetch logic could go here, or depend on manual refresh
+  // For now we'll assume the user discovers them as they interact or via balance
+  
+  return { tokenIds };
+}
 
 export function useGameCharacter() {
   const { writeContract, data: hash, error, isPending } = useWriteContract();
