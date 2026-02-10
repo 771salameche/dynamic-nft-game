@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.8.8] - 2026-02-10
+
+### Added
+- Created an engaging, professional landing page.
+- Implemented `AnimatedCharacters.tsx` with particle effects and interactive hero previews.
+- Created `FeatureCard.tsx` to highlight core ecosystem mechanics.
+- Implemented `Step.tsx` for visual "How it Works" progression.
+- Created `ActivityFeed.tsx` with simulated real-time on-chain events (mints, breeding, staking).
+- Integrated scroll-triggered animations using Framer Motion.
+
+### Fixed
+- Resolved hydration mismatch errors in the landing page by ensuring client-side rendering for random elements.
+- Optimized performance by lazy-loading heavy animated components.
+
 ## [0.8.7] - 2026-02-10
 
 ### Added
