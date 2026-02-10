@@ -57,7 +57,7 @@ export function useAchievements(owner?: Address) {
     return allAchievementsData
       .filter(res => res.status === 'success')
       .map((res) => {
-        const [id, name, description, category, tier, xpReward, tokenReward, isActive, unlockedCount] = res.result as [bigint, string, string, string, number, bigint, bigint, boolean, bigint];
+        const [id, name, description, category, tier, xpReward, tokenReward, isActive, unlockedCount] = res.result as unknown as [bigint, string, string, string, number, bigint, bigint, boolean, bigint];
         return {
           achievementId: id,
           name,

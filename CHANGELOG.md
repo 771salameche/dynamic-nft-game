@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.8.7] - 2026-02-10
+
+### Added
+- Created User Profile page with comprehensive player statistics and hero collection view.
+- Implemented Global Leaderboard with category-based rankings (Level, Power, Staking, Breeding).
+- Added `ActivityTimeline.tsx` to visualize recent player actions and milestones.
+- Implemented `PodiumCard.tsx` and `LeaderboardRow.tsx` for professional ranking display.
+- Added `useLeaderboard` and `useYourRank` hooks for competitive data discovery.
+- Implemented `useStakingStats` hook for profile-level staking summaries.
+
+### Changed
+- Enhanced `utils.ts` with `truncateAddress` helper for cleaner UI display.
+- Optimized `useStaking.ts` with per-token reward simulation for better real-time accuracy.
+
+### Fixed
+- Resolved critical build errors related to TypeScript type conversions in multicall results.
+- Fixed type mismatch in staking reward calculation hook.
+- Resolved cascading render issues in profile activity components.
+
 ## [0.8.6] - 2026-02-10
 
 ### Added

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
     useReadContract, 
     useWriteContract, 
@@ -139,17 +139,32 @@ export function usePendingRewards(owner?: Address) {
     return { realTimeRewards };
 }
 
-export function useCalculateRewards(tokenId: bigint) {
-    return useReadContract({
+export function useStakingStats(owner?: Address) {
+    const { data: stakes } = useStakedCharacters(owner);
+    const { realTimeRewards } = usePendingRewards(owner);
+
+    return {
+        totalStaked: stakes ? (stakes as StakeInfo[]).length : 0,
+        totalRewards: realTimeRewards,
+        stakes: stakes as StakeInfo[] | undefined
+    };
+}
+
+export function useCalculateRewards(stake: StakeInfo) {
+    const { data: baseRewardRate } = useReadContract({
         address: STAKING_ADDRESS,
         abi: STAKING_ABI,
-        functionName: 'calculateRewards',
-        args: [tokenId],
-        query: {
-            enabled: !!tokenId,
-            refetchInterval: 5000,
-        }
+        functionName: 'baseRewardRate',
     });
+    const now = useCurrentTime();
+
+    const rewards = useMemo(() => {
+        if (!baseRewardRate || !stake) return 0n;
+        const timeDiff = BigInt(now) - BigInt(stake.lastClaimAt);
+        return timeDiff > 0n ? timeDiff * (baseRewardRate as bigint) : 0n;
+    }, [baseRewardRate, stake, now]);
+
+    return { data: rewards };
 }
 
 export function useCurrentTime() {

@@ -17,7 +17,7 @@ interface StakedCharacterCardProps {
 
 export function StakedCharacterCard({ stake, onUnstake }: StakedCharacterCardProps) {
   const { data: traits } = useCharacterTraits(stake.tokenId);
-  const { data: rewards } = useCalculateRewards(stake.tokenId);
+  const { data: rewards } = useCalculateRewards(stake);
   const now = useCurrentTime();
   
   // Simulated milestone (e.g., 30 days for a level up or bonus)

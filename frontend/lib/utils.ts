@@ -10,6 +10,11 @@ export function formatAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+export const truncateAddress = (address: string) => {
+  if (!address) return '';
+  return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+};
+
 export function formatTokenAmount(amount: bigint, decimals: number = 18) {
   return (Number(amount) / 10 ** decimals).toFixed(2);
 }
