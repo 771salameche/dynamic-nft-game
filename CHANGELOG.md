@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.8.9] - 2026-02-10
+
+### Added
+- Completed Frontend ecosystem integration and polishing.
+- Implemented `TransactionStatus.tsx` for real-time blockchain feedback.
+- Added comprehensive SEO metadata to `layout.tsx` for social sharing and search visibility.
+- Refactored global layout into a Server Component architecture for better performance.
+- Created `Web3Provider.tsx` to centralize client-side blockchain providers.
+
+### Changed
+- Configured explicit responsive breakpoints in Tailwind CSS v4 theme.
+- Enhanced accessibility by adding semantic HTML tags across the layout.
+
+### Fixed
+- Cleaned up unused imports and refined TypeScript types in Web3 components.
+
 ## [0.8.8] - 2026-02-10
 
 ### Added
