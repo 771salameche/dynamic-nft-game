@@ -1,13 +1,12 @@
 'use client';
 
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount, useWatchContractEvent } from 'wagmi';
+import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
 import { GAME_CHARACTER_ADDRESS, GAME_CHARACTER_ABI } from '@/lib/contracts';
 import { toast } from 'react-hot-toast';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Address } from 'viem';
 
 export function useGameCharacter() {
-  const { address } = useAccount();
   const { writeContract, data: hash, error, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
@@ -20,8 +19,9 @@ export function useGameCharacter() {
         functionName: 'mintCharacter',
         args: [characterClass],
       });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to mint character');
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error(error.message || 'Failed to mint character');
     }
   };
 
@@ -34,8 +34,9 @@ export function useGameCharacter() {
         functionName: 'gainExperience',
         args: [tokenId, amount],
       });
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to gain experience');
+    } catch (err: unknown) {
+      const error = err as Error;
+      toast.error(error.message || 'Failed to gain experience');
     }
   };
 
@@ -52,6 +53,7 @@ export function useGameCharacter() {
     mintCharacter,
     gainExperience,
     isLoading: isPending || isConfirming,
+    isSuccess,
     hash,
     error,
   };
@@ -72,7 +74,6 @@ export function useCharacterTraits(tokenId: bigint) {
 export function useOwnedCharacters(owner?: Address) {
   const { address: connectedAddress } = useAccount();
   const targetAddress = owner || connectedAddress;
-  const [ownedTokenIds, setOwnedCharacters] = useState<bigint[]>([]);
 
   // We can use useWatchContractEvent to listen for Transfer events
   // or a more robust solution like a subgraph. 
@@ -95,7 +96,7 @@ export function useOwnedCharacters(owner?: Address) {
   
   return { 
     balance: balance as bigint | undefined,
-    tokenIds: ownedTokenIds,
+    tokenIds: [],
     isLoading: !balance && !!targetAddress 
   };
 }
