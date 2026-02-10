@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.8.6] - 2026-02-10
+
+### Added
+- Created comprehensive Achievement Tracker interface.
+- Implemented `AchievementCard.tsx` with tier-based styling and progress tracking.
+- Added `CircularProgress.tsx` for visual completion metrics.
+- Implemented real-time `AchievementNotification.tsx` using custom toasts.
+- Optimized metadata fetching using `useReadContracts` multicall for high performance.
+- Added `useAchievementNotifications` hook to listen for on-chain achievement unlocks.
+- Created `AchievementsPage` with category filtering and search functionality.
+
+### Changed
+- Refactored `useAchievements.ts` to support efficient batch fetching and player progress mapping.
+- Enhanced `utils.ts` with `formatDate` helper for blockchain timestamps.
+
+### Fixed
+- Resolved build issues and linting warnings in the achievement module.
+
 ## [0.8.5] - 2026-02-10
 
 ### Added
