@@ -97,25 +97,27 @@ contract AchievementTrigger is Ownable {
 
     function checkMintAchievements(address player, uint256 tokenId) external onlyAuthorized {
         // First Steps
-        tracker.unlockAchievement(player, FIRST_STEPS, tokenId);
+        if (tracker.getAchievementProgress(player, FIRST_STEPS) < 100) {
+            tracker.unlockAchievement(player, FIRST_STEPS, tokenId);
+        }
 
         // Collection Checks
         uint256 balance = character.balanceOf(player);
-        if (balance >= 5) tracker.unlockAchievement(player, COLLECTOR, tokenId);
-        if (balance >= 25) tracker.unlockAchievement(player, HOARDER, tokenId);
-        if (balance >= 100) tracker.unlockAchievement(player, MASTER_COLLECTOR, tokenId);
+        if (balance >= 5 && tracker.getAchievementProgress(player, COLLECTOR) < 100) tracker.unlockAchievement(player, COLLECTOR, tokenId);
+        if (balance >= 25 && tracker.getAchievementProgress(player, HOARDER) < 100) tracker.unlockAchievement(player, HOARDER, tokenId);
+        if (balance >= 100 && tracker.getAchievementProgress(player, MASTER_COLLECTOR) < 100) tracker.unlockAchievement(player, MASTER_COLLECTOR, tokenId);
     }
 
     function checkLevelAchievements(address player, uint256 tokenId, uint256 level) external onlyAuthorized {
-        if (level >= 10) tracker.unlockAchievement(player, ROOKIE, tokenId);
-        if (level >= 25) tracker.unlockAchievement(player, VETERAN, tokenId);
-        if (level >= 50) tracker.unlockAchievement(player, ELITE, tokenId);
-        if (level >= 75) tracker.unlockAchievement(player, LEGENDARY, tokenId);
-        if (level >= 100) tracker.unlockAchievement(player, MAX_POWER, tokenId);
+        if (level >= 10 && tracker.getAchievementProgress(player, ROOKIE) < 100) tracker.unlockAchievement(player, ROOKIE, tokenId);
+        if (level >= 25 && tracker.getAchievementProgress(player, VETERAN) < 100) tracker.unlockAchievement(player, VETERAN, tokenId);
+        if (level >= 50 && tracker.getAchievementProgress(player, ELITE) < 100) tracker.unlockAchievement(player, ELITE, tokenId);
+        if (level >= 75 && tracker.getAchievementProgress(player, LEGENDARY) < 100) tracker.unlockAchievement(player, LEGENDARY, tokenId);
+        if (level >= 100 && tracker.getAchievementProgress(player, MAX_POWER) < 100) tracker.unlockAchievement(player, MAX_POWER, tokenId);
     }
 
     function checkBreedingAchievements(address player, uint256 offspringId, uint256 gen, uint256 s, uint256 a, uint256 i) external onlyAuthorized {
-        tracker.unlockAchievement(player, BREEDER, offspringId);
+        if (tracker.getAchievementProgress(player, BREEDER) < 100) tracker.unlockAchievement(player, BREEDER, offspringId);
         
         // Genetics Expert (Breed 10) - Increment progress by 10% per breed
         uint256 current = tracker.getAchievementProgress(player, GENETICS_EXPERT);
@@ -124,32 +126,32 @@ contract AchievementTrigger is Ownable {
         }
 
         // Bloodline Master
-        if (gen >= 5) tracker.unlockAchievement(player, BLOODLINE_MASTER, offspringId);
+        if (gen >= 5 && tracker.getAchievementProgress(player, BLOODLINE_MASTER) < 100) tracker.unlockAchievement(player, BLOODLINE_MASTER, offspringId);
 
         // Perfect Specimen
-        if (s >= 90 && a >= 90 && i >= 90) {
+        if (s >= 90 && a >= 90 && i >= 90 && tracker.getAchievementProgress(player, PERFECT_SPECIMEN) < 100) {
             tracker.unlockAchievement(player, PERFECT_SPECIMEN, offspringId);
         }
     }
 
     function checkFusionAchievements(address player, uint256 fusedTokenId) external onlyAuthorized {
-        tracker.unlockAchievement(player, FUSION_PIONEER, fusedTokenId);
+        if (tracker.getAchievementProgress(player, FUSION_PIONEER) < 100) tracker.unlockAchievement(player, FUSION_PIONEER, fusedTokenId);
     }
 
     function checkStakingAchievements(address player) external onlyAuthorized {
         ICharacterStaking.StakeInfo[] memory stakes = staking.getUserStakes(player);
         
         // Whale
-        if (stakes.length >= 10) {
+        if (stakes.length >= 10 && tracker.getAchievementProgress(player, WHALE) < 100) {
             tracker.unlockAchievement(player, WHALE, 0);
         }
 
         // Time-based checks
         for (uint256 k = 0; k < stakes.length; k++) {
             uint256 duration = block.timestamp - stakes[k].stakedAt;
-            if (duration >= 7 days) tracker.unlockAchievement(player, HODLER, stakes[k].tokenId);
-            if (duration >= 30 days) tracker.unlockAchievement(player, COMMITTED, stakes[k].tokenId);
-            if (duration >= 180 days) tracker.unlockAchievement(player, DIAMOND_HANDS, stakes[k].tokenId);
+            if (duration >= 7 days && tracker.getAchievementProgress(player, HODLER) < 100) tracker.unlockAchievement(player, HODLER, stakes[k].tokenId);
+            if (duration >= 30 days && tracker.getAchievementProgress(player, COMMITTED) < 100) tracker.unlockAchievement(player, COMMITTED, stakes[k].tokenId);
+            if (duration >= 180 days && tracker.getAchievementProgress(player, DIAMOND_HANDS) < 100) tracker.unlockAchievement(player, DIAMOND_HANDS, stakes[k].tokenId);
         }
     }
 }

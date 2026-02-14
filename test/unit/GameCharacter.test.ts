@@ -19,14 +19,33 @@ describe("GameCharacter", function () {
 
     beforeEach(async function () {
         [owner, addr1, addr2] = await ethers.getSigners();
+        
+        // Deploy VRF Mock
+        const VRFCoordinatorV2Mock = await ethers.getContractFactory("VRFCoordinatorV2Mock");
+        const vrfCoordinatorMock = await VRFCoordinatorV2Mock.deploy(
+            ethers.parseEther("0.1"),
+            1e9
+        );
+        await vrfCoordinatorMock.createSubscription();
+        await vrfCoordinatorMock.fundSubscription(1, ethers.parseEther("100"));
+        const vrfCoordinatorAddress = await vrfCoordinatorMock.getAddress();
+
         gameCharacterFactory = await ethers.getContractFactory("GameCharacter");
 
         // Deploy and initialize the proxy contract
-        gameCharacter = (await upgrades.deployProxy(gameCharacterFactory, [TOKEN_NAME, TOKEN_SYMBOL], {
+        gameCharacter = (await upgrades.deployProxy(gameCharacterFactory, [
+            TOKEN_NAME, 
+            TOKEN_SYMBOL,
+            vrfCoordinatorAddress,
+            1, // subscriptionId
+            "0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c" // keyHash
+        ], {
             initializer: "initialize",
             kind: "uups",
+            unsafeAllow: ["constructor", "state-variable-immutable"],
+            constructorArgs: [vrfCoordinatorAddress]
         })) as unknown as GameCharacter;
-        await gameCharacter.waitForDeployment(); // Ensure deployment is complete
+        await vrfCoordinatorMock.addConsumer(1, await gameCharacter.getAddress());
     });
 
     // Test Suite 1: Deployment & Initialization
@@ -41,7 +60,9 @@ describe("GameCharacter", function () {
         });
 
         it("Should prevent reinitialization", async function () {
-            await expect(gameCharacter.initialize(TOKEN_NAME, TOKEN_SYMBOL)).to.be.revertedWith(
+            const vrfAddress = ethers.ZeroAddress;
+            const keyHash = ethers.ZeroHash;
+            await expect(gameCharacter.initialize(TOKEN_NAME, TOKEN_SYMBOL, vrfAddress, 1, keyHash)).to.be.revertedWith(
                 "Initializable: contract is already initialized"
             );
         });
@@ -201,9 +222,9 @@ describe("GameCharacter", function () {
         });
 
         it("Should deny non-owners from upgrading the contract", async function () {
-            const GameCharacterV2Factory = await ethers.getContractFactory("GameCharacter", addr1);
+            const randomAddress = addr2.address;
             await expect(
-                upgrades.upgradeProxy(await gameCharacter.getAddress(), GameCharacterV2Factory, { kind: "uups" })
+                gameCharacter.connect(addr1).upgradeTo(randomAddress)
             ).to.be.revertedWith("Ownable: caller is not the owner");
         });
     });
@@ -451,10 +472,15 @@ describe("GameCharacter", function () {
 
         it("Should allow owner to upgrade the contract", async function () {
             const GameCharacterV2Factory = await ethers.getContractFactory("GameCharacter", owner);
+            const vrfAddress = await (await ethers.getContractFactory("VRFCoordinatorV2Mock")).deploy(0, 0).then(m => m.getAddress());
             gameCharacterV2 = (await upgrades.upgradeProxy(
                 await gameCharacter.getAddress(),
                 GameCharacterV2Factory,
-                { kind: "uups" }
+                { 
+                    kind: "uups",
+                    unsafeAllow: ["constructor", "state-variable-immutable"],
+                    constructorArgs: [vrfAddress]
+                }
             )) as unknown as GameCharacter;
             await gameCharacterV2.waitForDeployment();
 
@@ -473,10 +499,15 @@ describe("GameCharacter", function () {
 
             // Upgrade the contract
             const GameCharacterV2Factory = await ethers.getContractFactory("GameCharacter", owner);
+            const vrfAddress = await (await ethers.getContractFactory("VRFCoordinatorV2Mock")).deploy(0, 0).then(m => m.getAddress());
             gameCharacterV2 = (await upgrades.upgradeProxy(
                 await gameCharacter.getAddress(),
                 GameCharacterV2Factory,
-                { kind: "uups" }
+                { 
+                    kind: "uups",
+                    unsafeAllow: ["constructor", "state-variable-immutable"],
+                    constructorArgs: [vrfAddress]
+                }
             )) as unknown as GameCharacter;
             await gameCharacterV2.waitForDeployment();
 

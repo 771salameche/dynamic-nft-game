@@ -22,6 +22,9 @@ interface IAchievementTrigger {
 
 /// @title GameCharacter
 /// @dev An ERC721Upgradeable contract for game characters with dynamic traits.
+/// @custom:oz-upgrades-unsafe-allow constructor
+/// @custom:oz-upgrades-unsafe-allow constructor
+/// @custom:oz-upgrades-unsafe-allow state-variable-immutable
 contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, VRFConsumerBaseV2, AutomationCompatible {
     using CountersUpgradeable for CountersUpgradeable.Counter;
     using SafeMathUpgradeable for uint256; // Enable SafeMath for uint256
