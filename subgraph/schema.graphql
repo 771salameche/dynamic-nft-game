@@ -1,0 +1,165 @@
+type Player @entity(immutable: false) {
+  id: ID! # Wallet address
+  characters: [Character!]! @derivedFrom(field: "owner")
+  stakedCharacters: [StakedCharacter!]! @derivedFrom(field: "player")
+  breedingEvents: [BreedingEvent!]! @derivedFrom(field: "breeder")
+  achievements: [PlayerAchievement!]! @derivedFrom(field: "player")
+  rewardsClaimed: BigInt!
+  totalRewardsEarned: BigInt!
+  achievementCount: Int!
+  charactersMinted: Int!
+  charactersStaked: Int!
+  breedingCount: Int!
+  createdAt: BigInt!
+  lastActiveAt: BigInt!
+}
+
+type Character @entity(immutable: false) {
+  id: ID! # tokenId
+  tokenId: BigInt!
+  owner: Player!
+  
+  # Traits
+  level: Int!
+  strength: Int!
+  agility: Int!
+  intelligence: Int!
+  experience: Int!
+  characterClass: String!
+  generation: Int!
+  
+  # Timestamps
+  mintedAt: BigInt!
+  lastTrainedAt: BigInt!
+  
+  # Relationships
+  isStaked: Boolean!
+  stakeInfo: StakedCharacter
+  parents: [Character!]
+  offspring: [Character!] @derivedFrom(field: "parents")
+  breedingHistory: [BreedingEvent!]! @derivedFrom(field: "offspring")
+  
+  # Stats
+  totalXPGained: BigInt!
+  levelUpCount: Int!
+  breedCount: Int!
+  
+  # Power calculation
+  powerScore: BigInt!
+}
+
+type StakedCharacter @entity(immutable: false) {
+  id: ID! # stakingId or combination of player + tokenId
+  character: Character!
+  player: Player!
+  tokenId: BigInt!
+  stakedAt: BigInt!
+  unstakedAt: BigInt
+  isActive: Boolean!
+  totalRewardsEarned: BigInt!
+  lastClaimAt: BigInt!
+}
+
+type BreedingEvent @entity(immutable: true) {
+  id: ID! # transaction hash + log index
+  breeder: Player!
+  parent1: Character!
+  parent2: Character!
+  offspring: Character!
+  generation: Int!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type FusionEvent @entity(immutable: true) {
+  id: ID!
+  player: Player!
+  token1: Character!
+  token2: Character!
+  fusedCharacter: Character!
+  combinedStats: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Achievement @entity(immutable: false) {
+  id: ID! # achievementId
+  achievementId: BigInt!
+  name: String!
+  description: String!
+  category: String!
+  tier: Int!
+  xpReward: BigInt!
+  tokenReward: BigInt!
+  isActive: Boolean!
+  totalUnlocks: Int!
+  createdAt: BigInt!
+}
+
+type PlayerAchievement @entity(immutable: true) {
+  id: ID! # player address + achievementId
+  player: Player!
+  achievement: Achievement!
+  unlockedAt: BigInt!
+  transactionHash: Bytes!
+}
+
+type RewardClaim @entity(immutable: true) {
+  id: ID! # transaction hash + log index
+  player: Player!
+  amount: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type LevelUpEvent @entity(immutable: true) {
+  id: ID!
+  character: Character!
+  oldLevel: Int!
+  newLevel: Int!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type ExperienceGainEvent @entity(immutable: true) {
+  id: ID!
+  character: Character!
+  amount: Int!
+  newTotal: Int!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type TokenTransfer @entity(immutable: true) {
+  id: ID!
+  from: Player!
+  to: Player!
+  amount: BigInt!
+  timestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type GlobalStats @entity(immutable: false) {
+  id: ID! # "global"
+  totalCharacters: BigInt!
+  totalPlayers: BigInt!
+  totalStaked: BigInt!
+  totalRewardsDistributed: BigInt!
+  totalBreedings: BigInt!
+  totalFusions: BigInt!
+  highestLevel: Int!
+  highestPowerScore: BigInt!
+  lastUpdated: BigInt!
+}
+
+type DailyStats @entity(immutable: false) {
+  id: ID! # date (YYYY-MM-DD)
+  date: String!
+  charactersMinted: Int!
+  stakingEvents: Int!
+  breedingEvents: Int!
+  rewardsClaimed: BigInt!
+  newPlayers: Int!
+  activeUsers: Int!
+}

@@ -2,5 +2,17 @@
   "hardhat": {
     "GameToken": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
     "GameCharacter": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+  },
+  "amoy": {
+    "GameToken": "0xec52571415b600EA511880847A321e3Dbe6aD0eF",
+    "GameCharacter": "0x095c03b93ceFadb99Ea93c2b0EEDc4d9B4DB1cF0",
+    "CharacterStaking": "0xE217f59ED6732D618d62e1C8BA402C9c11d9dd3B",
+    "CharacterBreeding": "0x46670A0AC823800b36179E0B2fBf16fF67ca13Bc",
+    "AchievementTracker": "0x798C7A24918c6bBC5685AcF296A8A07CDe7cCcF1",
+    "AchievementBadge": "0x514E227aAF287080B5CFf8258C1567AdA9725C2C",
+    "AchievementTrigger": "0x15D2AA9E5e0B1bF15185240db0A3C4e3b0506376",
+    "DailyQuest": "0x7Dd4E639232b615BeF055AC5D48eaB4914FC22b1",
+    "LootBox": "0x3a8b879537cb13bfE84795afA364c7B6660A16aC",
+    "TokenVesting": "0x80bEBD411Da8b0a3ff812Bd6D26Df54729Ec47Bb"
   }
 }

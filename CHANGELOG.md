@@ -5,7 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.9.3] - 2026-02-14
+
+### Added
+- Created `scripts/deploy-subgraph.sh` for automated authentication and deployment to The Graph Studio.
+- Implemented `subgraph/queries/test-queries.graphql` with a comprehensive set of GraphQL queries for testing and data discovery.
+- Integrated Apollo Client boilerplate in `frontend/lib/apollo-client.ts`.
+- Created `frontend/hooks/useSubgraph.ts` with custom React hooks for fetching top characters and player statistics from the subgraph.
+
+## [0.9.2] - 2026-02-14
+
+### Added
+- Implemented AssemblyScript mapping functions for all core game contracts in `subgraph/src/`.
+- `game-character.ts`: Handles minting, leveling, traits updates, and experience gains.
+- `game-token.ts`: Tracks token transfers between players.
+- `character-staking.ts`: Manages staking/unstaking events and rewards claims.
+- `character-breeding.ts`: Indexes breeding events and character fusion history.
+- `achievement-tracker.ts`: Tracks achievement additions and player unlocks.
+- Verified successful compilation of the entire subgraph with `graph build`.
+
+## [0.9.1] - 2026-02-14
+
+### Added
+- Defined a comprehensive GraphQL schema in `subgraph/schema.graphql` with entities for Players, Characters, Staking, Breeding, Achievements, and Global Statistics.
+- Implemented relationship mapping in the schema (e.g., character parents/offspring, player achievements).
+- Added `immutable: true/false` flags to all entities in `schema.graphql` to comply with the latest Graph CLI requirements.
+- Regenerated subgraph types using `graph codegen` to reflect the new schema structure.
+
+## [0.9.0] - 2026-02-14
+
+### Added
+- Initialized The Graph subgraph for comprehensive blockchain data indexing.
+- Created `subgraph/schema.graphql` with entities for Characters, Players, Staking, Breeding, and Achievements.
+- Configured `subgraph/subgraph.yaml` for Polygon Amoy with correct contract addresses and event signatures.
+- Implemented AssemblyScript mapping logic in `subgraph/src/` for all core game contracts.
+- Successfully performed subgraph `codegen` and `build` for deployment readiness.
+- Prepared contract ABIs in `subgraph/abis/` for indexing.
+
+### Changed
+- Renamed network configuration from `polygonAmoy` to `amoy` across the entire project for CLI consistency.
+- Refactored `tsconfig.json` to align with standard Hardhat TypeScript practices, improving type resolution and stability.
+- Updated `package.json` scripts to support the new `--network amoy` flag.
+
+### Fixed
+- Resolved `Error HH100: Network amoy doesn't exist` by aligning Hardhat config with CLI expectations.
+- Successfully executed the full deployment sequence on the Amoy testnet, deploying all 10 core contracts.
+- Updated existing deployment records in `deployments/` to reflect the network name change.
 
 ## [0.8.9] - 2026-02-10
 

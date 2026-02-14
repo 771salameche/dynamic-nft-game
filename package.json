@@ -10,15 +10,16 @@
     "format": "prettier --write \"{./,./contracts}/**/*.{js,ts,json,md,sol}\"",
     "format:check": "prettier --check \"{./,./contracts}/**/*.{js,ts,json,md,sol}\"",
     "compile": "hardhat compile",
-    "deploy:amoy": "hardhat run scripts/deploy/deploy-all.ts --network polygonAmoy",
+    "deploy:amoy": "hardhat run scripts/deploy/deploy-all.ts --network amoy",
     "deploy:mainnet": "hardhat run scripts/deploy/deploy-all.ts --network polygonMainnet",
-    "verify:amoy": "hardhat run scripts/verify-all.ts --network polygonAmoy"
+    "verify:amoy": "hardhat run scripts/verify-all.ts --network amoy"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "@chainlink/contracts": "1.5.0",
+    "@graphprotocol/graph-cli": "^0.98.1",
     "@nomicfoundation/hardhat-chai-matchers": "npm:@nomicfoundation/hardhat-chai-matchers@^2.0.0-hh2",
     "@nomicfoundation/hardhat-ethers": "3.1.0",
     "@nomicfoundation/hardhat-network-helpers": "npm:@nomicfoundation/hardhat-network-helpers@^1.0.0-hh2",

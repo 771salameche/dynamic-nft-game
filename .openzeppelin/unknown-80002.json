@@ -1,0 +1,569 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x00ac9a681b4F9aF951A18dB788a8983E49D1c404",
+      "txHash": "0x9841afd3bdbad886e876db91439222607b99784899d8afff6e540d7dcb2f56d4",
+      "kind": "uups"
+    },
+    {
+      "address": "0xfe0499687495687551C8018376e7665D4514A41B",
+      "txHash": "0xf51d350cbce6d97763d96d7a866f0536e7d94e39377f029cb2d27171636729a1",
+      "kind": "uups"
+    },
+    {
+      "address": "0x6C19a2fb791C0D1d27eDC1D3Ab95ABC08691b7C6",
+      "txHash": "0x33a4e26f92a19b5a6a163a7ca86b3de5b6ddc846201e54ca9f215a431382461a",
+      "kind": "uups"
+    },
+    {
+      "address": "0x9157a905c43Ce501dAe5aE94F50B2ab9E5d30E00",
+      "txHash": "0x433b4bdfe45c6c918a00d5caf920923884ce0caf08f1718018d13569b12b05e2",
+      "kind": "uups"
+    },
+    {
+      "address": "0x095c03b93ceFadb99Ea93c2b0EEDc4d9B4DB1cF0",
+      "txHash": "0xb1ab0d6178c0784fc9b29e29dc1ac2af358b00df9ded524c3a39671cb2d69475",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "4cd67e11484834f6007f7559c46175ccdc44a1d905c9d286b5cbd6846ed4ba97": {
+      "address": "0x6282b3D0f7002A668317d921949cf0F0BaAb3419",
+      "txHash": "0x0610a14bf1fcfb1e8cd4989fabfba4929f0f901a605517313e2fe8a69db0f27b",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\Initializable.sol:68"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\utils\\ContextUpgradeable.sol:40"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC165Upgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\utils\\introspection\\ERC165Upgradeable.sol:41"
+          },
+          {
+            "label": "_name",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_string_storage",
+            "contract": "ERC721Upgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\token\\ERC721\\ERC721Upgradeable.sol:25"
+          },
+          {
+            "label": "_symbol",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_string_storage",
+            "contract": "ERC721Upgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\token\\ERC721\\ERC721Upgradeable.sol:28"
+          },
+          {
+            "label": "_owners",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_mapping(t_uint256,t_address)",
+            "contract": "ERC721Upgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\token\\ERC721\\ERC721Upgradeable.sol:31"
+          },
+          {
+            "label": "_balances",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "ERC721Upgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\token\\ERC721\\ERC721Upgradeable.sol:34"
+          },
+          {
+            "label": "_tokenApprovals",
+            "offset": 0,
+            "slot": "105",
+            "type": "t_mapping(t_uint256,t_address)",
+            "contract": "ERC721Upgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\token\\ERC721\\ERC721Upgradeable.sol:37"
+          },
+          {
+            "label": "_operatorApprovals",
+            "offset": 0,
+            "slot": "106",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_bool))",
+            "contract": "ERC721Upgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\token\\ERC721\\ERC721Upgradeable.sol:40"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "107",
+            "type": "t_array(t_uint256)44_storage",
+            "contract": "ERC721Upgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\token\\ERC721\\ERC721Upgradeable.sol:477"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "152",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\access\\OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\ERC1967\\ERC1967UpgradeUpgradeable.sol:169"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "251",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\proxy\\utils\\UUPSUpgradeable.sol:111"
+          },
+          {
+            "label": "_status",
+            "offset": 0,
+            "slot": "301",
+            "type": "t_uint256",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "302",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "@openzeppelin\\contracts-upgradeable\\security\\ReentrancyGuardUpgradeable.sol:88"
+          },
+          {
+            "label": "_tokenIdCounter",
+            "offset": 0,
+            "slot": "351",
+            "type": "t_struct(Counter)2612_storage",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:156"
+          },
+          {
+            "label": "_characterTraits",
+            "offset": 0,
+            "slot": "352",
+            "type": "t_mapping(t_uint256,t_struct(CharacterTraits)6395_storage)",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:159"
+          },
+          {
+            "label": "_parents",
+            "offset": 0,
+            "slot": "353",
+            "type": "t_mapping(t_uint256,t_array(t_uint256)2_storage)",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:162"
+          },
+          {
+            "label": "_authorizedAddresses",
+            "offset": 0,
+            "slot": "354",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:165"
+          },
+          {
+            "label": "COORDINATOR",
+            "offset": 0,
+            "slot": "355",
+            "type": "t_contract(VRFCoordinatorV2Interface)221",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:171"
+          },
+          {
+            "label": "s_subscriptionId",
+            "offset": 20,
+            "slot": "355",
+            "type": "t_uint64",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:172"
+          },
+          {
+            "label": "keyHash",
+            "offset": 0,
+            "slot": "356",
+            "type": "t_bytes32",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:173"
+          },
+          {
+            "label": "callbackGasLimit",
+            "offset": 0,
+            "slot": "357",
+            "type": "t_uint32",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:174"
+          },
+          {
+            "label": "requestConfirmations",
+            "offset": 4,
+            "slot": "357",
+            "type": "t_uint16",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:175"
+          },
+          {
+            "label": "numWords",
+            "offset": 6,
+            "slot": "357",
+            "type": "t_uint32",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:176"
+          },
+          {
+            "label": "requestToTokenId",
+            "offset": 0,
+            "slot": "358",
+            "type": "t_mapping(t_uint256,t_uint256)",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:179"
+          },
+          {
+            "label": "requestToMinter",
+            "offset": 0,
+            "slot": "359",
+            "type": "t_mapping(t_uint256,t_address)",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:182"
+          },
+          {
+            "label": "lastUpdateTimestamp",
+            "offset": 0,
+            "slot": "360",
+            "type": "t_uint256",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:188"
+          },
+          {
+            "label": "updateInterval",
+            "offset": 0,
+            "slot": "361",
+            "type": "t_uint256",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:189"
+          },
+          {
+            "label": "passiveXPAmount",
+            "offset": 0,
+            "slot": "362",
+            "type": "t_uint256",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:190"
+          },
+          {
+            "label": "isAutoXPEnabled",
+            "offset": 0,
+            "slot": "363",
+            "type": "t_mapping(t_uint256,t_bool)",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:191"
+          },
+          {
+            "label": "stakingContract",
+            "offset": 0,
+            "slot": "364",
+            "type": "t_contract(ICharacterStaking)6272",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:192"
+          },
+          {
+            "label": "achievementTrigger",
+            "offset": 0,
+            "slot": "365",
+            "type": "t_contract(IAchievementTrigger)6289",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:193"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "366",
+            "type": "t_array(t_uint256)33_storage",
+            "contract": "GameCharacter",
+            "src": "contracts\\GameCharacter.sol:743"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)2_storage": {
+            "label": "uint256[2]",
+            "numberOfBytes": "64"
+          },
+          "t_array(t_uint256)33_storage": {
+            "label": "uint256[33]",
+            "numberOfBytes": "1056"
+          },
+          "t_array(t_uint256)44_storage": {
+            "label": "uint256[44]",
+            "numberOfBytes": "1408"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IAchievementTrigger)6289": {
+            "label": "contract IAchievementTrigger",
+            "numberOfBytes": "20"
+          },
+          "t_contract(ICharacterStaking)6272": {
+            "label": "contract ICharacterStaking",
+            "numberOfBytes": "20"
+          },
+          "t_contract(VRFCoordinatorV2Interface)221": {
+            "label": "contract VRFCoordinatorV2Interface",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_bool))": {
+            "label": "mapping(address => mapping(address => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_address)": {
+            "label": "mapping(uint256 => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_array(t_uint256)2_storage)": {
+            "label": "mapping(uint256 => uint256[2])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_bool)": {
+            "label": "mapping(uint256 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(CharacterTraits)6395_storage)": {
+            "label": "mapping(uint256 => struct GameCharacter.CharacterTraits)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_uint256)": {
+            "label": "mapping(uint256 => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(CharacterTraits)6395_storage": {
+            "label": "struct GameCharacter.CharacterTraits",
+            "members": [
+              {
+                "label": "level",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "strength",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "agility",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "intelligence",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "experience",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "lastTrainedAt",
+                "type": "t_uint40",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "generation",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "characterClass",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "genetics",
+                "type": "t_struct(GeneticMarkers)6368_storage",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "mutationCount",
+                "type": "t_uint8",
+                "offset": 0,
+                "slot": "9"
+              },
+              {
+                "label": "breedCount",
+                "type": "t_uint8",
+                "offset": 1,
+                "slot": "9"
+              },
+              {
+                "label": "isFused",
+                "type": "t_bool",
+                "offset": 2,
+                "slot": "9"
+              }
+            ],
+            "numberOfBytes": "320"
+          },
+          "t_struct(Counter)2612_storage": {
+            "label": "struct CountersUpgradeable.Counter",
+            "members": [
+              {
+                "label": "_value",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(GeneticMarkers)6368_storage": {
+            "label": "struct GameCharacter.GeneticMarkers",
+            "members": [
+              {
+                "label": "strengthDominant",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "agilityDominant",
+                "type": "t_bool",
+                "offset": 1,
+                "slot": "0"
+              },
+              {
+                "label": "intelligenceDominant",
+                "type": "t_bool",
+                "offset": 2,
+                "slot": "0"
+              },
+              {
+                "label": "hiddenStrength",
+                "type": "t_uint8",
+                "offset": 3,
+                "slot": "0"
+              },
+              {
+                "label": "hiddenAgility",
+                "type": "t_uint8",
+                "offset": 4,
+                "slot": "0"
+              },
+              {
+                "label": "hiddenIntelligence",
+                "type": "t_uint8",
+                "offset": 5,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint16": {
+            "label": "uint16",
+            "numberOfBytes": "2"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint32": {
+            "label": "uint32",
+            "numberOfBytes": "4"
+          },
+          "t_uint40": {
+            "label": "uint40",
+            "numberOfBytes": "5"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {}
+      }
+    }
+  }
+}

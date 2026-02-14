@@ -5,6 +5,7 @@ import "@nomicfoundation/hardhat-verify";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "dotenv/config";
+import "./scripts/hardhat.tasks"; // Import the task definitions
 
 // Ensure process.env.PRIVATE_KEY is only used if it's a non-empty string.
 const privateKeyAccounts = (process.env.PRIVATE_KEY && process.env.PRIVATE_KEY !== "")
@@ -27,7 +28,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       // Local Hardhat Network
     },
-    polygonAmoy: {
+    amoy: {
       url: process.env.POLYGON_AMOY_RPC_URL || "",
       accounts: privateKeyAccounts,
       chainId: 80002,
@@ -41,11 +42,11 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       polygon: process.env.POLYGONSCAN_API_KEY || "",
-      polygonAmoy: process.env.POLYGONSCAN_API_KEY || "",
+      amoy: process.env.POLYGONSCAN_API_KEY || "",
     },
     customChains: [
       {
-        network: "polygonAmoy",
+        network: "amoy",
         chainId: 80002,
         urls: {
           apiURL: "https://api-amoy.polygonscan.com/api",
