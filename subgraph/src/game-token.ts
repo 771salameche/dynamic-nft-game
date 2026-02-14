@@ -1,30 +1,27 @@
-import { Transfer as TransferEvent } from "../generated/GameToken/GameToken"
-import { Player, TokenTransfer } from "../generated/schema"
-import { BigInt } from "@graphprotocol/graph-ts"
+import { BigInt } from "@graphprotocol/graph-ts";
+import { Transfer } from "../generated/GameToken/GameToken";
+import { TokenTransfer, Player } from "../generated/schema";
+import { getOrCreatePlayer } from "./game-character";
 
-export function handleTransfer(event: TransferEvent): void {
-  let fromPlayer = Player.load(event.params.from.toHexString())
-  if (fromPlayer) {
-    fromPlayer.tokenBalance = fromPlayer.tokenBalance.minus(event.params.value)
-    fromPlayer.save()
-  }
-
-  let toPlayer = Player.load(event.params.to.toHexString())
-  if (toPlayer == null) {
-    toPlayer = new Player(event.params.to.toHexString())
-    toPlayer.tokenBalance = BigInt.fromI32(0)
-    toPlayer.totalStaked = 0
-  }
-  toPlayer.tokenBalance = toPlayer.tokenBalance.plus(event.params.value)
-  toPlayer.save()
-
+export function handleTransfer(event: Transfer): void {
   let transfer = new TokenTransfer(
-    event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
-  )
-  transfer.from = event.params.from
-  transfer.to = event.params.to
-  transfer.amount = event.params.value
-  transfer.blockNumber = event.block.number
-  transfer.timestamp = event.block.timestamp
-  transfer.save()
+    event.transaction.hash.toHex() + "-" + event.logIndex.toString()
+  );
+  
+  let fromPlayer = getOrCreatePlayer(event.params.from);
+  let toPlayer = getOrCreatePlayer(event.params.to);
+  
+  transfer.from = fromPlayer.id;
+  transfer.to = toPlayer.id;
+  transfer.amount = event.params.value;
+  transfer.timestamp = event.block.timestamp;
+  transfer.transactionHash = event.transaction.hash;
+  
+  transfer.save();
+  
+  fromPlayer.lastActiveAt = event.block.timestamp;
+  fromPlayer.save();
+  
+  toPlayer.lastActiveAt = event.block.timestamp;
+  toPlayer.save();
 }

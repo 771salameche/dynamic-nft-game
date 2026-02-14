@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] - 2026-02-14
+
+### Added
+- Implemented AssemblyScript mapping functions for all core game contracts in `subgraph/src/`.
+- `game-character.ts`: Handles minting, leveling, traits updates, and experience gains.
+- `game-token.ts`: Tracks token transfers between players.
+- `character-staking.ts`: Manages staking/unstaking events and rewards claims.
+- `character-breeding.ts`: Indexes breeding events and character fusion history.
+- `achievement-tracker.ts`: Tracks achievement additions and player unlocks.
+- Verified successful compilation of the entire subgraph with `graph build`.
+
 ## [0.9.1] - 2026-02-14
 
 ### Added

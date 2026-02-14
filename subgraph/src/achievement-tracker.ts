@@ -1,36 +1,48 @@
+import { BigInt } from "@graphprotocol/graph-ts";
 import {
-  AchievementUnlocked as AchievementUnlockedEvent,
-  AchievementAdded as AchievementAddedEvent
-} from "../generated/AchievementTracker/AchievementTracker"
-import { Achievement, PlayerAchievement, Player } from "../generated/schema"
-import { BigInt } from "@graphprotocol/graph-ts"
+  AchievementAdded,
+  AchievementUnlocked
+} from "../generated/AchievementTracker/AchievementTracker";
+import {
+  Achievement,
+  PlayerAchievement,
+  Player
+} from "../generated/schema";
+import { getOrCreatePlayer } from "./game-character";
 
-export function handleAchievementAdded(event: AchievementAddedEvent): void {
-  let achievement = new Achievement(event.params.achievementId.toString())
-  achievement.name = event.params.name
-  achievement.tier = event.params.tier
-  achievement.save()
+export function handleAchievementAdded(event: AchievementAdded): void {
+  let achievement = new Achievement(event.params.achievementId.toString());
+  achievement.achievementId = event.params.achievementId;
+  achievement.name = event.params.name;
+  achievement.description = ""; // Not in event
+  achievement.category = ""; // Not in event
+  achievement.tier = event.params.tier;
+  achievement.xpReward = BigInt.fromI32(0); // Not in event
+  achievement.tokenReward = BigInt.fromI32(0); // Not in event
+  achievement.isActive = true;
+  achievement.totalUnlocks = 0;
+  achievement.createdAt = event.block.timestamp;
+  achievement.save();
 }
 
-export function handleAchievementUnlocked(event: AchievementUnlockedEvent): void {
-  let player = Player.load(event.params.player.toHexString())
-  if (player == null) {
-    player = new Player(event.params.player.toHexString())
-    player.tokenBalance = BigInt.fromI32(0)
-    player.totalStaked = 0
-    player.save()
-  }
-
-  let achievement = Achievement.load(event.params.achievementId.toString())
+export function handleAchievementUnlocked(event: AchievementUnlocked): void {
+  let player = getOrCreatePlayer(event.params.player);
+  let achievement = Achievement.load(event.params.achievementId.toString());
+  
   if (achievement) {
-    let playerAchievement = new PlayerAchievement(
-      event.params.player.toHexString() + "-" + event.params.achievementId.toString()
-    )
-    playerAchievement.player = player.id
-    playerAchievement.achievement = achievement.id
-    playerAchievement.unlockedAt = event.block.timestamp
-    playerAchievement.xpReward = event.params.xpReward
-    playerAchievement.tokenReward = event.params.tokenReward
-    playerAchievement.save()
+    let id = event.params.player.toHex() + "-" + event.params.achievementId.toString();
+    let playerAchievement = new PlayerAchievement(id);
+    playerAchievement.player = player.id;
+    playerAchievement.achievement = achievement.id;
+    playerAchievement.unlockedAt = event.block.timestamp;
+    playerAchievement.transactionHash = event.transaction.hash;
+    playerAchievement.save();
+    
+    achievement.totalUnlocks = achievement.totalUnlocks + 1;
+    achievement.save();
+    
+    player.achievementCount = player.achievementCount + 1;
+    player.lastActiveAt = event.block.timestamp;
+    player.save();
   }
 }
