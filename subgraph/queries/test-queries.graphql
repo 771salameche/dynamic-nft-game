@@ -1,0 +1,139 @@
+# Get top 10 characters by level
+query TopCharactersByLevel {
+  characters(
+    first: 10
+    orderBy: level
+    orderDirection: desc
+  ) {
+    id
+    tokenId
+    level
+    characterClass
+    powerScore
+    owner {
+      id
+    }
+  }
+}
+
+# Get player stats
+query PlayerStats($address: String!) {
+  player(id: $address) {
+    id
+    characters {
+      tokenId
+      level
+      characterClass
+    }
+    stakedCharacters {
+      tokenId
+      stakedAt
+      totalRewardsEarned
+    }
+    achievements {
+      achievement {
+        name
+        tier
+      }
+      unlockedAt
+    }
+    totalRewardsEarned
+    charactersMinted
+    breedingCount
+  }
+}
+
+# Get leaderboard
+query Leaderboard($first: Int!) {
+  players(
+    first: $first
+    orderBy: totalRewardsEarned
+    orderDirection: desc
+  ) {
+    id
+    charactersMinted
+    totalRewardsEarned
+    achievementCount
+    characters(orderBy: level, orderDirection: desc, first: 1) {
+      level
+      powerScore
+    }
+  }
+}
+
+# Get breeding history for character
+query BreedingHistory($tokenId: String!) {
+  character(id: $tokenId) {
+    id
+    tokenId
+    generation
+    parents {
+      tokenId
+      characterClass
+      level
+    }
+    offspring {
+      tokenId
+      characterClass
+      level
+    }
+    breedingHistory {
+      parent1 {
+        tokenId
+      }
+      parent2 {
+        tokenId
+      }
+      timestamp
+    }
+  }
+}
+
+# Get global statistics
+query GlobalStatistics {
+  globalStats(id: "global") {
+    totalCharacters
+    totalPlayers
+    totalStaked
+    totalRewardsDistributed
+    totalBreedings
+    highestLevel
+    highestPowerScore
+    lastUpdated
+  }
+}
+
+# Get recent activity
+query RecentActivity($first: Int!) {
+  breedingEvents(
+    first: $first
+    orderBy: timestamp
+    orderDirection: desc
+  ) {
+    id
+    parent1 {
+      tokenId
+      characterClass
+    }
+    parent2 {
+      tokenId
+      characterClass
+    }
+    offspring {
+      tokenId
+    }
+    timestamp
+  }
+  
+  levelUpEvents(
+    first: $first
+    orderBy: timestamp
+    orderDirection: desc
+  ) {
+    character {
+      tokenId
+    }
+    newLevel
+    timestamp
+  }
+}

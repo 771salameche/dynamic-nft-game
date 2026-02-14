@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.3] - 2026-02-14
+
+### Added
+- Created `scripts/deploy-subgraph.sh` for automated authentication and deployment to The Graph Studio.
+- Implemented `subgraph/queries/test-queries.graphql` with a comprehensive set of GraphQL queries for testing and data discovery.
+- Integrated Apollo Client boilerplate in `frontend/lib/apollo-client.ts`.
+- Created `frontend/hooks/useSubgraph.ts` with custom React hooks for fetching top characters and player statistics from the subgraph.
+
 ## [0.9.2] - 2026-02-14
 
 ### Added
