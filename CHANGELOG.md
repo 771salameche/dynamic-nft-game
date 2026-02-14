@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1] - 2026-02-14
+
+### Added
+- Completed comprehensive security audit and established `docs/SECURITY_CHECKLIST.md`.
+- Launched the official Bug Bounty Program documented in `docs/BUG_BOUNTY.md`.
+- Implemented `EmergencyPause.sol` providing upgradeable-safe emergency stop functionality.
+- Implemented `WithdrawalSafety.sol` using the pull-over-push pattern to secure fund withdrawals.
+- Integrated security best practices across the codebase including enhanced input validation and reentrancy protection.
+
 ## [0.10.0] - 2026-02-14
 
 ### Added
