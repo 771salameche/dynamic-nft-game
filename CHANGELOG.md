@@ -5,7 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.9.0] - 2026-02-14
+
+### Added
+- Initialized The Graph subgraph for comprehensive blockchain data indexing.
+- Created `subgraph/schema.graphql` with entities for Characters, Players, Staking, Breeding, and Achievements.
+- Configured `subgraph/subgraph.yaml` for Polygon Amoy with correct contract addresses and event signatures.
+- Implemented AssemblyScript mapping logic in `subgraph/src/` for all core game contracts.
+- Successfully performed subgraph `codegen` and `build` for deployment readiness.
+- Prepared contract ABIs in `subgraph/abis/` for indexing.
+
+### Changed
+- Renamed network configuration from `polygonAmoy` to `amoy` across the entire project for CLI consistency.
+- Refactored `tsconfig.json` to align with standard Hardhat TypeScript practices, improving type resolution and stability.
+- Updated `package.json` scripts to support the new `--network amoy` flag.
+
+### Fixed
+- Resolved `Error HH100: Network amoy doesn't exist` by aligning Hardhat config with CLI expectations.
+- Successfully executed the full deployment sequence on the Amoy testnet, deploying all 10 core contracts.
+- Updated existing deployment records in `deployments/` to reflect the network name change.
 
 ## [0.8.9] - 2026-02-10
 

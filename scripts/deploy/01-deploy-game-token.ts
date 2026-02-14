@@ -1,7 +1,8 @@
-import { ethers, network, run } from "hardhat";
 import { saveDeployment } from "../utils/save-deployment";
+import { task } from "hardhat/config"; // Import task
 
-async function main() {
+task("deploy:game-token", "Deploys the GameToken contract").setAction(async (_, hre) => {
+  const { ethers, network, run } = hre;
   const [deployer] = await ethers.getSigners();
   const networkName = network.name;
 
@@ -38,15 +39,4 @@ async function main() {
       console.error("Verification failed:", error);
     }
   }
-}
-
-if (require.main === module) {
-  main()
-    .then(() => process.exit(0))
-    .catch((error) => {
-      console.error(error);
-      process.exit(1);
-    });
-}
-
-export default main;
+});

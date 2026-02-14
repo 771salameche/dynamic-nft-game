@@ -1,176 +1,92 @@
-type AdminChanged @entity(immutable: true) {
-  id: Bytes!
-  previousAdmin: Bytes! # address
-  newAdmin: Bytes! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+type Character @entity(immutable: false) {
+  id: ID! # tokenId
+  owner: Player!
+  characterClass: String!
+  level: Int!
+  strength: Int!
+  agility: Int!
+  intelligence: Int!
+  experience: Int!
+  generation: Int!
+  lastTrainedAt: BigInt!
+  staked: Boolean!
+  breedingCount: Int!
+  father: Character
+  mother: Character
+  offspring: [Character!]! @derivedFrom(field: "father")
+  fusedWith: Character
+  isFused: Boolean!
 }
 
-type Approval @entity(immutable: true) {
-  id: Bytes!
-  owner: Bytes! # address
-  approved: Bytes! # address
-  tokenId: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type ApprovalForAll @entity(immutable: true) {
-  id: Bytes!
-  owner: Bytes! # address
-  operator: Bytes! # address
-  approved: Boolean! # bool
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type AutoXPEnabled @entity(immutable: true) {
-  id: Bytes!
-  tokenId: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type BeaconUpgraded @entity(immutable: true) {
-  id: Bytes!
-  beacon: Bytes! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type CharacterMinted @entity(immutable: true) {
-  id: Bytes!
-  tokenId: BigInt! # uint256
-  owner: Bytes! # address
-  characterClass: String! # string
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type ClassValidationDebug @entity(immutable: true) {
-  id: Bytes!
-  providedClass: String! # string
-  providedHash: Bytes! # bytes32
-  isValid: Boolean! # bool
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type ExperienceGained @entity(immutable: true) {
-  id: Bytes!
-  tokenId: BigInt! # uint256
-  amount: Int! # uint16
-  newTotalExperience: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type Initialized @entity(immutable: true) {
-  id: Bytes!
-  version: Int! # uint8
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+type Player @entity(immutable: false) {
+  id: ID! # address
+  characters: [Character!]! @derivedFrom(field: "owner")
+  tokenBalance: BigInt!
+  totalStaked: Int!
+  achievements: [PlayerAchievement!]! @derivedFrom(field: "player")
 }
 
 type LevelUp @entity(immutable: true) {
-  id: Bytes!
-  tokenId: BigInt! # uint256
-  oldLevel: BigInt! # uint256
-  newLevel: BigInt! # uint256
+  id: ID!
+  character: Character!
+  newLevel: Int!
   blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+  timestamp: BigInt!
 }
 
-type MintRequested @entity(immutable: true) {
-  id: Bytes!
-  requestId: BigInt! # uint256
-  tokenId: BigInt! # uint256
+type ExperienceGained @entity(immutable: true) {
+  id: ID!
+  character: Character!
+  amount: Int!
+  newTotalExperience: Int!
   blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+  timestamp: BigInt!
 }
 
-type MutationApplied @entity(immutable: true) {
-  id: Bytes!
-  tokenId: BigInt! # uint256
-  mutationCount: Int! # uint8
+type TokenTransfer @entity(immutable: true) {
+  id: ID!
+  from: Bytes!
+  to: Bytes!
+  amount: BigInt!
   blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+  timestamp: BigInt!
 }
 
-type OwnershipTransferred @entity(immutable: true) {
-  id: Bytes!
-  previousOwner: Bytes! # address
-  newOwner: Bytes! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+type StakedCharacter @entity(immutable: false) {
+  id: ID! # tokenId
+  player: Player!
+  stakedAt: BigInt!
+  lastClaimAt: BigInt!
 }
 
-type PassiveXPGranted @entity(immutable: true) {
-  id: Bytes!
-  tokenId: BigInt! # uint256
-  amount: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+type RewardClaim @entity(immutable: true) {
+  id: ID!
+  player: Player!
+  amount: BigInt!
+  timestamp: BigInt!
 }
 
-type TraitsRevealed @entity(immutable: true) {
-  id: Bytes!
-  tokenId: BigInt! # uint256
-  traits: [BigInt!]! # uint256[3]
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+type BreedingEvent @entity(immutable: true) {
+  id: ID!
+  parent1: Character!
+  parent2: Character!
+  offspring: Character!
+  generation: Int!
+  timestamp: BigInt!
 }
 
-type TraitsUpdated @entity(immutable: true) {
-  id: Bytes!
-  tokenId: BigInt! # uint256
-  newLevel: BigInt! # uint256
-  newStrength: BigInt! # uint256
-  newAgility: BigInt! # uint256
-  newIntelligence: BigInt! # uint256
-  newExperience: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+type Achievement @entity(immutable: false) {
+  id: ID! # achievementId
+  name: String!
+  tier: Int!
+  players: [PlayerAchievement!]! @derivedFrom(field: "achievement")
 }
 
-type Transfer @entity(immutable: true) {
-  id: Bytes!
-  from: Bytes! # address
-  to: Bytes! # address
-  tokenId: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type Upgraded @entity(immutable: true) {
-  id: Bytes!
-  implementation: Bytes! # address
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
-}
-
-type UpkeepPerformed @entity(immutable: true) {
-  id: Bytes!
-  timestamp: BigInt! # uint256
-  blockNumber: BigInt!
-  blockTimestamp: BigInt!
-  transactionHash: Bytes!
+type PlayerAchievement @entity(immutable: true) {
+  id: ID! # player-achievementId
+  player: Player!
+  achievement: Achievement!
+  unlockedAt: BigInt!
+  xpReward: BigInt!
+  tokenReward: BigInt!
 }

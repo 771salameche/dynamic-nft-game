@@ -1,8 +1,10 @@
-import { ethers, upgrades, network, run } from "hardhat";
+
 import { saveDeployment } from "../utils/save-deployment";
 import { GameCharacter } from "../../typechain-types";
+import { task } from "hardhat/config"; // Import task
 
-async function main() {
+task("deploy:game-character", "Deploys the GameCharacter contract").setAction(async (_, hre) => {
+  const { ethers, upgrades, network, run } = hre;
   const [deployer] = await ethers.getSigners();
   const networkName = network.name;
 
@@ -57,20 +59,10 @@ async function main() {
     try {
       await run("verify:verify", {
         address: implementationAddress,
+        constructorArguments: [vrfCoordinator],
       });
     } catch (error) {
       console.error("Verification failed:", error);
     }
   }
-}
-
-if (require.main === module) {
-  main()
-    .then(() => process.exit(0))
-    .catch((error) => {
-      console.error(error);
-      process.exit(1);
-    });
-}
-
-export default main;
+});
