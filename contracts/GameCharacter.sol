@@ -89,6 +89,14 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         bool isFused; // True if the character is a result of fusion
     }
 
+    /// @dev Represents AI-generated art metadata for a character.
+    struct ArtMetadata {
+        string imageURI;       // IPFS hash of AI-generated image
+        uint256 generatedAt;   // Timestamp when art was generated
+        bool isGenerated;      // Art generation status
+        string prompt;         // AI prompt used (for transparency)
+    }
+
     /*///////////////////////////////////////////////////////////////
                             EVENTS
     ///////////////////////////////////////////////////////////////*/
@@ -149,6 +157,9 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     /// @dev Emitted when auto-XP is enabled for a character.
     event AutoXPEnabled(uint256 indexed tokenId);
 
+    /// @dev Emitted when AI art metadata is updated.
+    event ArtMetadataUpdated(uint256 indexed tokenId, string imageURI, string prompt);
+
     /// @dev Emitted for debugging character class validation.
     event ClassValidationDebug(string providedClass, bytes32 providedHash, bool isValid);
 
@@ -194,6 +205,9 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     mapping(uint256 => bool) public isAutoXPEnabled;
     ICharacterStaking public stakingContract;
     IAchievementTrigger public achievementTrigger;
+
+    /// @dev Mapping from token ID to AI art metadata.
+    mapping(uint256 => ArtMetadata) private _artMetadata;
 
     /*///////////////////////////////////////////////////////////////
                             MODIFIERS
@@ -543,6 +557,58 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         return _MAX_LEVEL;
     }
 
+    /**
+     * @dev Updates the AI art metadata for a character.
+     *      Only callable by authorized addresses.
+     * @param tokenId The unique identifier of the character.
+     * @param imageURI The IPFS URI of the generated art.
+     * @param prompt The AI prompt used for generation.
+     */
+    function setArtMetadata(
+        uint256 tokenId,
+        string calldata imageURI,
+        string calldata prompt
+    ) external onlyAuthorized {
+        if (!_exists(tokenId)) {
+            revert CharacterDoesNotExist(tokenId);
+        }
+
+        _artMetadata[tokenId] = ArtMetadata({
+            imageURI: imageURI,
+            generatedAt: block.timestamp,
+            isGenerated: true,
+            prompt: prompt
+        });
+
+        emit ArtMetadataUpdated(tokenId, imageURI, prompt);
+    }
+
+    /**
+     * @dev Returns the AI art metadata for a character.
+     * @param tokenId The unique identifier of the character.
+     */
+    function getArtMetadata(uint256 tokenId) external view returns (ArtMetadata memory) {
+        if (!_exists(tokenId)) {
+            revert CharacterDoesNotExist(tokenId);
+        }
+        return _artMetadata[tokenId];
+    }
+
+    /**
+     * @dev See {IERC721Metadata-tokenURI}.
+     */
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        if (!_exists(tokenId)) {
+            revert CharacterDoesNotExist(tokenId);
+        }
+
+        if (_artMetadata[tokenId].isGenerated) {
+            return _artMetadata[tokenId].imageURI;
+        }
+
+        return super.tokenURI(tokenId);
+    }
+
     /*///////////////////////////////////////////////////////////////
                             VRF CALLBACK
     ///////////////////////////////////////////////////////////////*/
@@ -743,5 +809,5 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     ///////////////////////////////////////////////////////////////*/
 
     /// @dev Storage gap to ensure compatibility during upgrades.
-    uint256[33] private __gap; // Reduced by 1 to account for achievementTrigger
+    uint256[32] private __gap; // Reduced from 33 to 32 to account for _artMetadata
 }
