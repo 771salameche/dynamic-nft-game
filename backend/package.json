@@ -7,6 +7,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "listen": "ts-node src/listeners/mintListener.ts",
+    "test:manual": "ts-node src/scripts/manualTest.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

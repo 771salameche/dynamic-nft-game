@@ -9,7 +9,7 @@
 
 import express, { Request, Response, NextFunction } from 'express';
 import { config } from './config/env';
-import { generateArtForCharacter, isArtGenerated } from './services/artGenerator';
+import { processArtGeneration, isArtGenerated } from './services/artGenerator';
 import { startMintListener } from './listeners/mintListener';
 import { logger } from './utils/logger';
 
@@ -88,11 +88,11 @@ app.post('/api/art/generate', async (req: Request, res: Response) => {
         logger.info(LOG_CTX, `Manual art generation triggered for token #${tokenId}`);
 
         // Start generation (async — respond immediately)
-        generateArtForCharacter(tokenId)
-            .then((result) => {
-                logger.info(LOG_CTX, `Manual art generation complete for token #${tokenId}`, result);
+        processArtGeneration(String(tokenId))
+            .then(() => {
+                logger.info(LOG_CTX, `Manual art generation complete for token #${tokenId}`);
             })
-            .catch((error) => {
+            .catch((error: Error) => {
                 logger.error(LOG_CTX, `Manual art generation failed for token #${tokenId}`, error);
             });
 

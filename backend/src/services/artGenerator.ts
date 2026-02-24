@@ -1,105 +1,116 @@
-/**
- * Art Generator Service — Orchestrates the full AI art generation pipeline:
- *   1. Read character traits from the blockchain
- *   2. Generate an image via OpenAI DALL-E 3
- *   3. Upload image + metadata to IPFS via Pinata (using ipfsManager)
- *   4. Call ArtGenerator contract to store the IPFS hash on-chain
- */
-
-import { getGameCharacterContract, getArtGeneratorContract, getSigner } from '../config/contracts';
-import { generateCharacterArt, CharacterTraits } from './openaiService';
+import { ethers } from 'ethers';
+import { generateCharacterArt } from './openaiService';
 import { uploadCompleteNFTData } from './ipfsManager';
-import { logger } from '../utils/logger';
+import dotenv from 'dotenv';
 
-const LOG_CTX = 'ArtGenerator';
+dotenv.config();
 
-export interface ArtGenerationResult {
-    tokenId: number;
-    imageIPFSHash: string;
-    metadataIPFSHash: string;
-    prompt: string;
-    txHash: string;
+// Import ABIs
+const GameCharacterABI = require('../../../artifacts/contracts/GameCharacter.sol/GameCharacter.json').abi;
+const ArtGeneratorABI = require('../../../artifacts/contracts/ArtGenerator.sol/ArtGenerator.json').abi;
+
+const provider = new ethers.JsonRpcProvider(process.env.POLYGON_AMOY_RPC_URL);
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+
+const gameCharacterContract = new ethers.Contract(
+    process.env.GAME_CHARACTER_ADDRESS!,
+    GameCharacterABI,
+    wallet
+);
+
+const artGeneratorContract = new ethers.Contract(
+    process.env.ART_GENERATOR_ADDRESS!,
+    ArtGeneratorABI,
+    wallet
+);
+
+export async function processArtGeneration(tokenId: string): Promise<void> {
+    console.log(`\n=== Processing Art Generation for Token ${tokenId} ===`);
+
+    try {
+        // Step 1: Fetch character traits from blockchain
+        console.log('1. Fetching character traits...');
+        const traits = await gameCharacterContract.characters(tokenId);
+
+        const characterData = {
+            characterClass: traits.characterClass,
+            level: Number(traits.level),
+            strength: Number(traits.strength),
+            agility: Number(traits.agility),
+            intelligence: Number(traits.intelligence),
+            generation: Number(traits.generation),
+            experience: Number(traits.experience),
+        };
+
+        console.log('Character traits:', characterData);
+
+        // Step 2: Generate AI art
+        console.log('2. Generating AI art...');
+        const { imageUrl, prompt } = await generateCharacterArt(tokenId, characterData);
+
+        // Step 3: Upload to IPFS
+        console.log('3. Uploading to IPFS...');
+        const { metadataHash, imageHash } = await uploadCompleteNFTData(
+            imageUrl,
+            tokenId,
+            characterData,
+            prompt
+        );
+
+        console.log(`Image IPFS: ipfs://${imageHash}`);
+        console.log(`Metadata IPFS: ipfs://${metadataHash}`);
+
+        // Step 4: Update smart contract
+        console.log('4. Updating smart contract...');
+        const tx = await artGeneratorContract.fulfillArt(
+            tokenId,
+            metadataHash, // Store metadata hash as imageURI
+            prompt
+        );
+
+        console.log(`Transaction hash: ${tx.hash}`);
+        console.log('Waiting for confirmation...');
+
+        const receipt = await tx.wait();
+        console.log(`✓ Transaction confirmed in block ${receipt.blockNumber}`);
+
+        console.log(`\n=== Art Generation Complete for Token ${tokenId} ===\n`);
+    } catch (error: any) {
+        console.error(`✗ Art generation failed for token ${tokenId}:`, error.message);
+        throw error;
+    }
 }
 
 /**
- * Generates AI art for a specific character token and stores it on-chain.
- * This is the main orchestration function called when a mint event is detected.
- *
- * @param tokenId The token ID to generate art for.
- * @returns The result including IPFS hashes and transaction hash.
+ * Batch process multiple tokens
  */
-export async function generateArtForCharacter(tokenId: number): Promise<ArtGenerationResult> {
-    logger.info(LOG_CTX, `Starting art generation for token #${tokenId}`);
+export async function batchProcessArt(tokenIds: string[]): Promise<void> {
+    console.log(`Processing ${tokenIds.length} tokens...`);
 
-    // Step 1: Fetch character traits from the blockchain
-    const gameCharacter = getGameCharacterContract();
-    const traits = await gameCharacter.getCharacterTraits(tokenId);
+    for (const tokenId of tokenIds) {
+        try {
+            await processArtGeneration(tokenId);
+            // Wait 2 seconds between requests to avoid rate limits
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        } catch (error: any) {
+            console.error(`Failed to process token ${tokenId}:`, error.message);
+            // Continue with next token
+        }
+    }
 
-    const characterTraits: CharacterTraits = {
-        characterClass: traits.characterClass,
-        strength: Number(traits.strength),
-        agility: Number(traits.agility),
-        intelligence: Number(traits.intelligence),
-        level: Number(traits.level),
-        generation: Number(traits.generation),
-    };
-
-    // Add experience specifically for metadata (ipfsManager expects it)
-    const traitsWithExp = {
-        ...characterTraits,
-        experience: Number(traits.experience || 0)
-    };
-
-    logger.info(LOG_CTX, `Token #${tokenId} traits:`, traitsWithExp);
-
-    // Step 2: Generate image via DALL-E 3
-    logger.info(LOG_CTX, `Generating AI image for token #${tokenId}...`);
-    const { imageUrl, prompt } = await generateCharacterArt(String(tokenId), characterTraits);
-    logger.info(LOG_CTX, `AI image generated for token #${tokenId}`);
-
-    // Step 3: Upload complete data to IPFS (Image + Metadata)
-    logger.info(LOG_CTX, `Uploading complete NFT data to IPFS for token #${tokenId}...`);
-    const { metadataHash, imageHash } = await uploadCompleteNFTData(
-        imageUrl,
-        String(tokenId),
-        traitsWithExp,
-        prompt
-    );
-    logger.info(LOG_CTX, `IPFS Upload complete: img=ipfs://${imageHash}, meta=ipfs://${metadataHash}`);
-
-    // Step 4: Call ArtGenerator contract to store on-chain
-    const signer = getSigner();
-    const artGenerator = getArtGeneratorContract(signer);
-
-    logger.info(LOG_CTX, `Submitting on-chain transaction for token #${tokenId}...`);
-    const tx = await artGenerator.fulfillArt(tokenId, metadataHash, prompt);
-    const receipt = await tx.wait();
-
-    logger.info(LOG_CTX, `✅ Art generation complete for token #${tokenId}`, {
-        txHash: receipt.hash,
-        imageIPFS: `ipfs://${imageHash}`,
-        metadataIPFS: `ipfs://${metadataHash}`,
-    });
-
-    return {
-        tokenId,
-        imageIPFSHash: imageHash,
-        metadataIPFSHash: metadataHash,
-        prompt,
-        txHash: receipt.hash,
-    };
+    console.log('Batch processing complete');
 }
 
 /**
  * Checks if art has already been generated for a token.
  */
-export async function isArtGenerated(tokenId: number): Promise<boolean> {
-    const gameCharacter = getGameCharacterContract();
-    const artMeta = await gameCharacter.artMetadata(tokenId);
-    return artMeta.isGenerated;
+export async function isArtGenerated(tokenId: string | number): Promise<boolean> {
+    try {
+        const artMeta = await gameCharacterContract.artMetadata(tokenId);
+        return artMeta.isGenerated;
+    } catch (error) {
+        console.error(`Error checking if art is generated for token ${tokenId}:`, error);
+        return false;
+    }
 }
 
-export default {
-    generateArtForCharacter,
-    isArtGenerated,
-};

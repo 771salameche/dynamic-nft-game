@@ -38,7 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Created `src/utils/logger.ts` for color-coded structured logging.
     - Created `src/utils/helpers.ts` with retry logic and prompt builders.
     - Created `src/server.ts` with health checks and manual trigger API endpoints.
-    - Configured `tsconfig.json` and npm scripts (`dev`, `build`, `start`, `listen`).
+    - Added `src/scripts/manualTest.ts` for command-line CI/CD and manual testing of the AI pipeline.
+    - Configured `tsconfig.json` and npm scripts (`dev`, `build`, `start`, `listen`, `test:manual`).
 
 ## [0.10.2] - 2026-02-14
 

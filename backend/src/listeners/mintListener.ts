@@ -5,7 +5,7 @@
 
 import { ethers } from 'ethers';
 import { getGameCharacterContract, getProvider } from '../config/contracts';
-import { generateArtForCharacter, isArtGenerated } from '../services/artGenerator';
+import { processArtGeneration, isArtGenerated } from '../services/artGenerator';
 import { logger } from '../utils/logger';
 import { sleep } from '../utils/helpers';
 
@@ -44,13 +44,9 @@ export async function startMintListener(): Promise<void> {
             }
 
             // Generate AI art
-            const result = await generateArtForCharacter(id);
-            logger.info(LOG_CTX, `✅ Art generation pipeline complete for token #${id}`, {
-                imageIPFS: `ipfs://${result.imageIPFSHash}`,
-                metadataIPFS: `ipfs://${result.metadataIPFSHash}`,
-                txHash: result.txHash,
-            });
-        } catch (error) {
+            await processArtGeneration(String(id));
+            logger.info(LOG_CTX, `✅ Art generation pipeline complete for token #${id}`);
+        } catch (error: any) {
             logger.error(LOG_CTX, `❌ Art generation failed for token #${id}`, error);
         }
     });
@@ -73,11 +69,9 @@ export async function startMintListener(): Promise<void> {
             }
 
             // Generate art now that traits are confirmed
-            const result = await generateArtForCharacter(id);
-            logger.info(LOG_CTX, `✅ Art generated after trait reveal for token #${id}`, {
-                txHash: result.txHash,
-            });
-        } catch (error) {
+            await processArtGeneration(String(id));
+            logger.info(LOG_CTX, `✅ Art generated after trait reveal for token #${id}`);
+        } catch (error: any) {
             logger.error(LOG_CTX, `❌ Art generation after trait reveal failed for token #${id}`, error);
         }
     });
@@ -86,7 +80,7 @@ export async function startMintListener(): Promise<void> {
     logger.info(LOG_CTX, '✅ Mint listener is active and waiting for events...');
 
     // Handle provider disconnection
-    provider.on('error', (error: Error) => {
+    provider.on('error', (error: unknown) => {
         logger.error(LOG_CTX, 'Provider error:', error);
     });
 }
