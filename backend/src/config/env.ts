@@ -23,6 +23,7 @@ interface EnvConfig {
     // Server
     PORT: number;
     NODE_ENV: string;
+    SUBGRAPH_URL: string;
 }
 
 function getEnvVar(key: string, required = true): string {
@@ -53,6 +54,7 @@ export const config: EnvConfig = {
     // Server
     PORT: parseInt(getEnvVar('PORT', false) || '3001', 10),
     NODE_ENV: getEnvVar('NODE_ENV', false) || 'development',
+    SUBGRAPH_URL: getEnvVar('SUBGRAPH_URL'),
 };
 
 export default config;

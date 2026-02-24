@@ -53,6 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Implemented `src/services/questGenerator.ts` using OpenAI GPT-4 Turbo for dynamic quest creation.
     - Implemented `src/listeners/questListener.ts` to watch for `QuestRequested` events and fulfill them automatically.
     - Integrated quest status and manual request endpoints into `src/server.ts`.
+- **Player Data Analysis Service:**
+    - Created `src/services/playerAnalyzer.ts` using Apollo Client to fetch deep player data from The Graph.
+    - Implemented `analyzePlayerBehavior()` to categorize players (Breeder, Collector, Staker, Grinder) and identify game-loop weaknesses.
+    - Integrated analysis results into `QuestListener` and `QuestGenerator` for enhanced AI prompt personalization.
 
 ## [0.10.2] - 2026-02-14
 

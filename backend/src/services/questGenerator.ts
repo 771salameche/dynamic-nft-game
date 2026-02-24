@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { config } from '../config/env';
 import { logger } from '../utils/logger';
 import { retryWithBackoff } from '../utils/helpers';
+import { PlayerAnalysis } from './playerAnalyzer';
 
 const LOG_CTX = 'QuestGenerator';
 
@@ -45,11 +46,12 @@ export interface QuestData {
 export async function generatePersonalizedQuest(
     playerAddress: string,
     characterData: any,
-    history: any
+    history: any,
+    analysis?: PlayerAnalysis
 ): Promise<QuestData> {
     logger.info(LOG_CTX, `Generating personalized quest for player ${playerAddress}...`);
 
-    const prompt = constructQuestPrompt(playerAddress, characterData, history);
+    const prompt = constructQuestPrompt(playerAddress, characterData, history, analysis);
 
     return await retryWithBackoff(async () => {
         const response = await openai.chat.completions.create({
@@ -83,9 +85,20 @@ export async function generatePersonalizedQuest(
 /**
  * Constructs the prompt for OpenAI.
  */
-function constructQuestPrompt(player: string, characterData: any, history: any): string {
+function constructQuestPrompt(player: string, characterData: any, history: any, analysis?: PlayerAnalysis): string {
+    const analysisSection = analysis ? `
+    Player Analysis:
+    - Playstyle: ${analysis.playstyle}
+    - Preferred Class: ${analysis.preferredClass}
+    - Avg Character Level: ${analysis.averageCharacterLevel}
+    - Strength Areas: ${analysis.strengthAreas.join(', ')}
+    - Weakness Areas: ${analysis.weaknessAreas.join(', ')}
+    - Suggested Quest Types: ${analysis.suggestedQuestTypes.join(', ')}
+    ` : '';
+
     return `
     Player Address: ${player}
+    ${analysisSection}
     
     Character Data:
     ${JSON.stringify(characterData, null, 2)}

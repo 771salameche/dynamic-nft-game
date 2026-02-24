@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 import { getSmartQuestContract, getGameCharacterContract, getProvider, getSigner } from '../config/contracts';
 import { generatePersonalizedQuest } from '../services/questGenerator';
+import { analyzePlayerBehavior } from '../services/playerAnalyzer';
 import { logger } from '../utils/logger';
 import { config } from '../config/env';
 
@@ -25,8 +26,12 @@ export async function startQuestListener(): Promise<void> {
             const characterData = await fetchPlayerCharacters(gameCharacter, player);
             const history = await fetchQuestHistorySummary(smartQuest, player);
 
-            // 2. Generate personalized quest via AI
-            const generatedQuest = await generatePersonalizedQuest(player, characterData, history);
+            // 2. Fetch deep player analysis from The Graph
+            logger.info(LOG_CTX, `🔍 Analyzing behavior for ${player}...`);
+            const analysis = await analyzePlayerBehavior(player);
+
+            // 3. Generate personalized quest via AI
+            const generatedQuest = await generatePersonalizedQuest(player, characterData, history, analysis);
 
             // 3. Fulfill the quest on-chain
             const signer = getSigner();
