@@ -3,70 +3,71 @@ import * as fs from "fs";
 import * as path from "path";
 
 async function main() {
-    console.log("🚀 Starting SmartQuestEngine deployment...");
+    console.log("🚀 Deploying SmartQuestEngine...");
 
-    const network = "amoy";
-    const deploymentsPath = path.join(__dirname, "../../deployments/deployments.json");
-
+    const deploymentsPath = path.join(__dirname, "../../deployments/amoy.json");
     if (!fs.existsSync(deploymentsPath)) {
-        console.error(`❌ Deployments file not found at ${deploymentsPath}`);
+        console.error(`❌ Deployment file not found at ${deploymentsPath}`);
         process.exit(1);
     }
 
-    const allDeployments = JSON.parse(fs.readFileSync(deploymentsPath, "utf8"));
-    const deployments = allDeployments[network];
-
-    if (!deployments || !deployments.GameCharacter || !deployments.GameToken) {
-        console.error(`❌ GameCharacter or GameToken address missing for network ${network}`);
-        process.exit(1);
-    }
+    const deployments = JSON.parse(fs.readFileSync(deploymentsPath, "utf8"));
 
     const [deployer] = await ethers.getSigners();
-    console.log("👷 Deploying with account:", deployer.address);
-    console.log("📍 GameCharacter:", deployments.GameCharacter);
-    console.log("📍 GameToken:", deployments.GameToken);
+    console.log("👤 Deploying with account:", deployer.address);
 
     // Deploy SmartQuestEngine
-    console.log("\n📦 Deploying SmartQuestEngine...");
     const SmartQuestEngine = await ethers.getContractFactory("SmartQuestEngine");
-    const smartQuestEngine = await SmartQuestEngine.deploy(
+    const questEngine = await SmartQuestEngine.deploy(
         deployments.GameCharacter,
         deployments.GameToken
     );
-    await smartQuestEngine.waitForDeployment();
+    await questEngine.waitForDeployment();
 
-    const smartQuestEngineAddress = await smartQuestEngine.getAddress();
-    console.log("✅ SmartQuestEngine deployed to:", smartQuestEngineAddress);
+    const questEngineAddress = await questEngine.getAddress();
+    console.log("✅ SmartQuestEngine deployed to:", questEngineAddress);
 
     // Save deployment
-    allDeployments[network].SmartQuestEngine = smartQuestEngineAddress;
-    fs.writeFileSync(deploymentsPath, JSON.stringify(allDeployments, null, 2));
-    console.log("📝 Deployment address saved to deployments/deployments.json");
+    deployments.SmartQuestEngine = questEngineAddress;
+    fs.writeFileSync(deploymentsPath, JSON.stringify(deployments, null, 2));
 
     console.log("\n=== Post-Deployment Configuration ===");
 
-    // Set the authorized generator (backend wallet)
-    const backendAddress = process.env.BACKEND_WALLET_ADDRESS;
-    if (!backendAddress) {
-        console.log("⚠️  BACKEND_WALLET_ADDRESS not set in .env");
-        console.log("   Defaulting authorized generator to deployer.");
-        console.log("   Remember to call setAuthorizedGenerator via the Admin subagent later.");
-    } else {
-        console.log(`👤 Setting authorized generator to: ${backendAddress}`);
-        const tx = await smartQuestEngine.setAuthorizedGenerator(backendAddress);
-        await tx.wait();
-        console.log("✅ Authorized generator set successfully.");
+    // 1. Grant MINTER_ROLE to SmartQuestEngine on GameToken
+    console.log("1. Granting MINTER_ROLE to SmartQuestEngine...");
+    const GameToken = await ethers.getContractAt("GameToken", deployments.GameToken);
+    // GameToken.sol uses addMinter based on the user's provided script
+    const tx1 = await GameToken.addMinter(questEngineAddress);
+    await tx1.wait();
+    console.log("✓ MINTER_ROLE granted");
+
+    // 2. Set backend as authorized generator
+    console.log("2. Setting authorized generator...");
+    // Using .env or hardcoded fallback for safety in script context
+    const backendAddress = process.env.BACKEND_WALLET_ADDRESS || deployer.address;
+
+    if (!process.env.BACKEND_WALLET_ADDRESS) {
+        console.log("⚠️  BACKEND_WALLET_ADDRESS not set in .env, using deployer address as fallback.");
     }
 
-    console.log("\n✨ Deployment Complete!");
-    console.log("Next steps:");
-    console.log(`1. npx hardhat verify --network amoy ${smartQuestEngineAddress} ${deployments.GameCharacter} ${deployments.GameToken}`);
+    const tx2 = await questEngine.setAuthorizedGenerator(backendAddress);
+    await tx2.wait();
+    console.log(`✓ Authorized generator set to: ${backendAddress}`);
+
+    console.log("\n=== Deployment Complete ===");
+    console.log("Contract addresses:");
+    console.log("SmartQuestEngine:", questEngineAddress);
+    console.log("\nNext steps:");
+    console.log(`1. npx hardhat verify --network amoy ${questEngineAddress} ${deployments.GameCharacter} ${deployments.GameToken}`);
     console.log("2. Update backend .env with SMART_QUEST_ENGINE_ADDRESS");
+    console.log("3. Update frontend .env.local with NEXT_PUBLIC_SMART_QUEST_ENGINE_ADDRESS");
+    console.log("4. Start quest listener: npm run listen:quests");
+    console.log("5. Test by requesting a quest from frontend");
 }
 
 main()
     .then(() => process.exit(0))
     .catch((error) => {
-        console.error("❌ Deployment failed:", error);
+        console.error(error);
         process.exit(1);
     });

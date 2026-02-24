@@ -55,6 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Integrated quest status and manual request endpoints into `src/server.ts`.
     - Enhanced `src/listeners/questListener.ts` with real-time WebSocket support and event deduplication.
     - Added `listen:quests` npm script for dedicated quest fulfillment monitoring.
+    - Implemented a unified **Master Listener** in `src/listeners/index.ts` to coordinate both Minting/Art and Quest systems.
+    - Created `scripts/deploy/12-deploy-smart-quest-engine.ts` for automated contract deployment and role configuration.
 - **Player Data Analysis Service:**
     - Created `src/services/playerAnalyzer.ts` using Apollo Client to fetch deep player data from The Graph.
     - Implemented `analyzePlayerBehavior()` to categorize players (Breeder, Collector, Staker, Grinder) and identify game-loop weaknesses.

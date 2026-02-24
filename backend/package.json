@@ -10,6 +10,7 @@
     "test:manual": "ts-node src/scripts/manualTest.ts",
     "listen:mint": "ts-node src/listeners/mintListener.ts",
     "listen:quests": "ts-node src/listeners/questListener.ts",
+    "listen:all": "ts-node src/listeners/index.ts",
     "generate-art": "ts-node src/scripts/generateArt.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
