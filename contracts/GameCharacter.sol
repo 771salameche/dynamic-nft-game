@@ -7,6 +7,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol"; // Import SafeMathUpgradeable
+import "@openzeppelin/contracts/utils/Base64.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
 import "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
@@ -89,6 +91,14 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         bool isFused; // True if the character is a result of fusion
     }
 
+    /// @dev Represents AI-generated art metadata for a character.
+    struct ArtMetadata {
+        string imageURI;       // IPFS hash of AI-generated image (e.g., "ipfs://Qm...")
+        uint256 generatedAt;   // Timestamp when art was generated
+        bool isGenerated;      // Art generation status
+        string aiPrompt;       // AI prompt used (for transparency)
+    }
+
     /*///////////////////////////////////////////////////////////////
                             EVENTS
     ///////////////////////////////////////////////////////////////*/
@@ -149,6 +159,12 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     /// @dev Emitted when auto-XP is enabled for a character.
     event AutoXPEnabled(uint256 indexed tokenId);
 
+    /// @dev Emitted when AI art metadata is set for a character.
+    event ArtMetadataSet(uint256 indexed tokenId, string imageURI, string prompt);
+
+    /// @dev Emitted when the ArtGenerator contract address is updated.
+    event ArtGeneratorUpdated(address newArtGenerator);
+
     /// @dev Emitted for debugging character class validation.
     event ClassValidationDebug(string providedClass, bytes32 providedHash, bool isValid);
 
@@ -194,6 +210,12 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     mapping(uint256 => bool) public isAutoXPEnabled;
     ICharacterStaking public stakingContract;
     IAchievementTrigger public achievementTrigger;
+
+    /// @dev Mapping from token ID to AI art metadata.
+    mapping(uint256 => ArtMetadata) public artMetadata;
+
+    /// @dev Address of the ArtGenerator contract authorized to set art metadata.
+    address public artGeneratorContract;
 
     /*///////////////////////////////////////////////////////////////
                             MODIFIERS
@@ -543,6 +565,102 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         return _MAX_LEVEL;
     }
 
+    /**
+     * @dev Sets the ArtGenerator contract address.
+     *      Only callable by the contract owner.
+     * @param _artGenerator The address of the ArtGenerator contract.
+     */
+    function setArtGeneratorContract(address _artGenerator) external onlyOwner {
+        artGeneratorContract = _artGenerator;
+        emit ArtGeneratorUpdated(_artGenerator);
+    }
+
+    /**
+     * @dev Sets the AI art metadata for a character.
+     *      Only callable by the ArtGenerator contract.
+     *      Can only be called once per token (art cannot be overwritten).
+     * @param tokenId The unique identifier of the character.
+     * @param imageURI The IPFS URI of the generated art.
+     * @param prompt The AI prompt used for generation.
+     */
+    function setArtMetadata(
+        uint256 tokenId,
+        string memory imageURI,
+        string memory prompt
+    ) external {
+        require(msg.sender == artGeneratorContract, "Only ArtGenerator");
+        require(_exists(tokenId), "Token does not exist");
+        require(!artMetadata[tokenId].isGenerated, "Art already generated");
+
+        artMetadata[tokenId] = ArtMetadata({
+            imageURI: imageURI,
+            generatedAt: block.timestamp,
+            isGenerated: true,
+            aiPrompt: prompt
+        });
+
+        emit ArtMetadataSet(tokenId, imageURI, prompt);
+    }
+
+    /**
+     * @dev Returns the AI art metadata for a character.
+     * @param tokenId The unique identifier of the character.
+     */
+    function getArtMetadata(uint256 tokenId) external view returns (ArtMetadata memory) {
+        if (!_exists(tokenId)) {
+            revert CharacterDoesNotExist(tokenId);
+        }
+        return artMetadata[tokenId];
+    }
+
+    /**
+     * @dev See {IERC721Metadata-tokenURI}.
+     *      Returns IPFS metadata URI if AI art is generated,
+     *      otherwise returns base64-encoded default metadata JSON.
+     */
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        require(_exists(tokenId), "Token does not exist");
+
+        if (artMetadata[tokenId].isGenerated) {
+            // Return IPFS metadata URI
+            return string(abi.encodePacked(
+                "ipfs://",
+                artMetadata[tokenId].imageURI
+            ));
+        } else {
+            // Return placeholder/default metadata
+            return _constructDefaultMetadata(tokenId);
+        }
+    }
+
+    /**
+     * @dev Constructs a base64-encoded JSON metadata string for characters
+     *      that do not yet have AI-generated art.
+     * @param tokenId The unique identifier of the character.
+     * @return A data URI containing base64-encoded JSON metadata.
+     */
+    function _constructDefaultMetadata(uint256 tokenId) internal view returns (string memory) {
+        CharacterTraits memory traits = _characterTraits[tokenId];
+
+        string memory json = string(abi.encodePacked(
+            '{"name": "Character #', Strings.toString(tokenId), '",' ,
+            '"description": "Dynamic NFT Game Character",',
+            '"image": "ipfs://DEFAULT_PLACEHOLDER_HASH",',
+            '"attributes": [',
+                '{"trait_type": "Class", "value": "', traits.characterClass, '"},',
+                '{"trait_type": "Level", "value": ', Strings.toString(traits.level), '},',
+                '{"trait_type": "Strength", "value": ', Strings.toString(traits.strength), '},',
+                '{"trait_type": "Agility", "value": ', Strings.toString(traits.agility), '},',
+                '{"trait_type": "Intelligence", "value": ', Strings.toString(traits.intelligence), '}',
+            ']}'
+        ));
+
+        return string(abi.encodePacked(
+            "data:application/json;base64,",
+            Base64.encode(bytes(json))
+        ));
+    }
+
     /*///////////////////////////////////////////////////////////////
                             VRF CALLBACK
     ///////////////////////////////////////////////////////////////*/
@@ -743,5 +861,5 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     ///////////////////////////////////////////////////////////////*/
 
     /// @dev Storage gap to ensure compatibility during upgrades.
-    uint256[33] private __gap; // Reduced by 1 to account for achievementTrigger
+    uint256[31] private __gap; // Reduced from 32 to 31 to account for artGeneratorContract
 }

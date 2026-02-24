@@ -1,0 +1,40 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "nodemon --exec ts-node src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "listen": "ts-node src/listeners/mintListener.ts",
+    "test:manual": "ts-node src/scripts/manualTest.ts",
+    "listen:mint": "ts-node src/listeners/mintListener.ts",
+    "listen:quests": "ts-node src/listeners/questListener.ts",
+    "listen:all": "ts-node src/listeners/index.ts",
+    "generate-art": "ts-node src/scripts/generateArt.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@apollo/client": "^4.1.6",
+    "@pinata/sdk": "^2.1.0",
+    "axios": "^1.13.5",
+    "cross-fetch": "^4.1.0",
+    "dotenv": "^17.3.1",
+    "ethers": "^6.16.0",
+    "express": "^5.2.1",
+    "form-data": "^4.0.5",
+    "graphql": "^16.13.0",
+    "openai": "^6.24.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.3.0",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

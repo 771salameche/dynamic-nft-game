@@ -5,6 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-02-24
+
+### Added
+- **AI Art Metadata in GameCharacter.sol:**
+    - Added `ArtMetadata` struct with `imageURI`, `generatedAt`, `isGenerated`, and `aiPrompt` fields.
+    - Added `artMetadata` public mapping and `artGeneratorContract` state variable.
+    - Implemented `setArtGeneratorContract()` for owner to configure the ArtGenerator contract address.
+    - Implemented `setArtMetadata()` with ArtGenerator-only access control and one-time-per-token guard.
+    - Enhanced `tokenURI()` to return IPFS metadata URI when AI art is generated, with `_constructDefaultMetadata()` fallback providing Base64-encoded JSON with character attributes.
+    - Added `ArtMetadataSet` and `ArtGeneratorUpdated` events.
+    - Imported `Base64.sol` and `Strings.sol` from OpenZeppelin.
+    - Updated storage gap from 32 to 31 to account for the new `artGeneratorContract` variable.
+    - Added `scripts/deploy/11-deploy-art-generator.ts` for automated deployment and post-deployment configuration.
+- **AI Personalized Quest System in SmartQuestEngine.sol:**
+    - Implemented `SmartQuestEngine.sol` for generating per-player dynamic quests.
+    - Added `SmartQuest` struct and `QuestType`/`QuestDifficulty` enums.
+    - Implemented `requestQuest()` for players to trigger AI quest generation.
+    - Implemented `fulfillQuest()` for authorized backend fulfiller to submit AI-generated content.
+    - Implemented `completeQuest()` to reward players with GameToken (minting) and GameCharacter XP.
+    - Added `QuestRequested`, `QuestGenerated`, `QuestCompleted`, and `QuestExpired` events.
+    - Created `scripts/deploy/12-deploy-smart-quest-engine.ts` for automated deployment.
+
+- **Backend AI Art Generation Service (`backend/`):**
+    - Initialized Node.js + TypeScript backend with Express server.
+    - Created `src/config/env.ts` for centralized environment variable loading with validation.
+    - Created `src/config/contracts.ts` with ABI definitions and ethers.js v6 contract factory functions.
+    - Created `src/services/openaiService.ts` with sophisticated trait-based prompt construction:
+        - Logic to detect dominant stats (Strength/Agility/Intelligence) and set visual appearance.
+        - Class-specific descriptive markers (Warrior, Mage, Rogue).
+        - Quality/Heritage tiers based on character Level and Generation.
+        - Dual-provider support (DALL-E 3 + Stability AI) with TypeScript safety.
+    - Overhauled `src/services/ipfsManager.ts` using `@pinata/sdk`:
+        - Implemented `uploadCompleteNFTData` to automate the image download and multi-step IPFS pinning (Image + JSON Metadata).
+        - Added `uploadImageToIPFS`, `uploadBase64ToIPFS`, and `uploadMetadataToIPFS`.
+        - Added `testPinataConnection` for diagnostic health checks.
+    - Simplified `src/services/artGenerator.ts`:
+        - Refactored orchestrator to use `uploadCompleteNFTData`, reducing code complexity and improving reliability.
+        - Integrated character experience tracking into metadata generation.
+    - Overhauled `src/listeners/mintListener.ts` to use `WebSocketProvider` for real-time event monitoring, including event deduplication and trait reveal triggers.
+    - Created `src/utils/logger.ts` for color-coded structured logging.
+    - Created `src/utils/helpers.ts` with retry logic and prompt builders.
+    - Created `src/server.ts` with health checks and manual trigger API endpoints.
+    - Added `src/scripts/generateArt.ts` for comprehensive CLI-based art generation (single, batch, and "missing-only" modes).
+    - Configured `tsconfig.json` and npm scripts (`dev`, `build`, `start`, `listen`, `test:manual`, `listen:mint`, `generate-art`).
+- **Backend AI Quest Service:**
+    - Implemented `src/services/questGenerator.ts` using OpenAI GPT-4 Turbo for dynamic quest creation.
+    - Implemented `src/listeners/questListener.ts` to watch for `QuestRequested` events and fulfill them automatically.
+    - Integrated quest status and manual request endpoints into `src/server.ts`.
+    - Enhanced `src/listeners/questListener.ts` with real-time WebSocket support and event deduplication.
+    - Added `listen:quests` npm script for dedicated quest fulfillment monitoring.
+    - Implemented a unified **Master Listener** in `src/listeners/index.ts` to coordinate both Minting/Art and Quest systems.
+    - Created `scripts/deploy/12-deploy-smart-quest-engine.ts` for automated contract deployment and role configuration.
+- **Player Data Analysis Service:**
+    - Created `src/services/playerAnalyzer.ts` using Apollo Client to fetch deep player data from The Graph.
+    - Implemented `analyzePlayerBehavior()` to categorize players (Breeder, Collector, Staker, Grinder) and identify game-loop weaknesses.
+    - Integrated analysis results into `QuestListener` and `QuestGenerator` for enhanced AI prompt personalization.
+- **Frontend AI Quest Interface (`frontend/`):**
+    - Created `app/quests/page.tsx` as a dedicated game hub for AI challenges.
+    - Implemented `ActiveQuest.tsx` with real-time expiration tracking and dynamic AI-prompt visualization.
+    - Implemented `QuestHistory.tsx` to list and reward visualize past completed challenges.
+    - Integrated Wagmi/Viem for seamless smart contract interaction on the Polygon Amoy testnet.
+    - Applied high-end glassmorphism styling and Framer Motion animations for a premium feel.
+
 ## [0.10.2] - 2026-02-14
 
 ### Added
