@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-02-24
+
+### Added
+- **AI Art Metadata in GameCharacter.sol:**
+    - Added `ArtMetadata` struct with `imageURI`, `generatedAt`, `isGenerated`, and `aiPrompt` fields.
+    - Added `artMetadata` public mapping and `artGeneratorContract` state variable.
+    - Implemented `setArtGeneratorContract()` for owner to configure the ArtGenerator contract address.
+    - Implemented `setArtMetadata()` with ArtGenerator-only access control and one-time-per-token guard.
+    - Enhanced `tokenURI()` to return IPFS metadata URI when AI art is generated, with `_constructDefaultMetadata()` fallback providing Base64-encoded JSON with character attributes.
+    - Added `ArtMetadataSet` and `ArtGeneratorUpdated` events.
+    - Imported `Base64.sol` and `Strings.sol` from OpenZeppelin.
+    - Updated storage gap from 32 to 31 to account for the new `artGeneratorContract` variable.
+
+- **Backend AI Art Generation Service (`backend/`):**
+    - Initialized Node.js + TypeScript backend with Express server.
+    - Created `src/config/env.ts` for centralized environment variable loading with validation.
+    - Created `src/config/contracts.ts` with ABI definitions and ethers.js v6 contract factory functions.
+    - Created `src/services/openaiService.ts` with dual-provider support (DALL-E 3 + Stability AI) and automatic fallback.
+    - Created `src/services/ipfsManager.ts` for Pinata IPFS uploads (images + NFT metadata JSON).
+    - Created `src/services/artGenerator.ts` as the main orchestrator: reads on-chain traits → builds AI prompt → generates image → uploads to IPFS → stores hash on-chain.
+    - Created `src/listeners/mintListener.ts` to watch `CharacterMinted` and `TraitsRevealed` events and trigger art generation.
+    - Created `src/utils/logger.ts` with color-coded structured logging.
+    - Created `src/utils/helpers.ts` with retry logic (exponential backoff) and AI prompt builder.
+    - Created `src/server.ts` with Express API (`/health`, `/api/art/status/:tokenId`, `/api/art/generate`).
+    - Installed dependencies: express, dotenv, ethers@6, openai, axios, form-data, @pinata/sdk.
+    - Installed dev dependencies: typescript, @types/node, @types/express, ts-node, nodemon.
+    - Configured `tsconfig.json` and npm scripts (`dev`, `build`, `start`, `listen`).
+
 ## [0.10.2] - 2026-02-14
 
 ### Added
