@@ -27,11 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - Class-specific descriptive markers (Warrior, Mage, Rogue).
         - Quality/Heritage tiers based on character Level and Generation.
         - Dual-provider support (DALL-E 3 + Stability AI) with TypeScript safety.
-    - Created `src/services/ipfsManager.ts` for Pinata IPFS uploads (images + NFT metadata JSON).
-    - Created `src/services/artGenerator.ts` as the main orchestrator:
-        - Fetches on-chain traits and triggers AI art generation.
-        - **New:** Implemented image downloading from OpenAI/Stability URLs before IPFS upload.
-        - Coordinates IPFS asset pinning and on-chain metadata storage.
+    - Overhauled `src/services/ipfsManager.ts` using `@pinata/sdk`:
+        - Implemented `uploadCompleteNFTData` to automate the image download and multi-step IPFS pinning (Image + JSON Metadata).
+        - Added `uploadImageToIPFS`, `uploadBase64ToIPFS`, and `uploadMetadataToIPFS`.
+        - Added `testPinataConnection` for diagnostic health checks.
+    - Simplified `src/services/artGenerator.ts`:
+        - Refactored orchestrator to use `uploadCompleteNFTData`, reducing code complexity and improving reliability.
+        - Integrated character experience tracking into metadata generation.
     - Created `src/listeners/mintListener.ts` to watch `CharacterMinted` and `TraitsRevealed` events.
     - Created `src/utils/logger.ts` for color-coded structured logging.
     - Created `src/utils/helpers.ts` with retry logic and prompt builders.

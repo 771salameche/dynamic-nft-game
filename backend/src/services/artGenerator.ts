@@ -2,15 +2,13 @@
  * Art Generator Service — Orchestrates the full AI art generation pipeline:
  *   1. Read character traits from the blockchain
  *   2. Generate an image via OpenAI DALL-E 3
- *   3. Download the generated image
- *   4. Upload image + metadata to IPFS via Pinata
- *   5. Call ArtGenerator contract to store the IPFS hash on-chain
+ *   3. Upload image + metadata to IPFS via Pinata (using ipfsManager)
+ *   4. Call ArtGenerator contract to store the IPFS hash on-chain
  */
 
-import axios from 'axios';
 import { getGameCharacterContract, getArtGeneratorContract, getSigner } from '../config/contracts';
 import { generateCharacterArt, CharacterTraits } from './openaiService';
-import { uploadImageToIPFS, uploadCharacterMetadata } from './ipfsManager';
+import { uploadCompleteNFTData } from './ipfsManager';
 import { logger } from '../utils/logger';
 
 const LOG_CTX = 'ArtGenerator';
@@ -21,14 +19,6 @@ export interface ArtGenerationResult {
     metadataIPFSHash: string;
     prompt: string;
     txHash: string;
-}
-
-/**
- * Downloads an image from a URL and returns it as a Buffer.
- */
-async function downloadImage(url: string): Promise<Buffer> {
-    const response = await axios.get(url, { responseType: 'arraybuffer' });
-    return Buffer.from(response.data);
 }
 
 /**
@@ -54,56 +44,47 @@ export async function generateArtForCharacter(tokenId: number): Promise<ArtGener
         generation: Number(traits.generation),
     };
 
-    logger.info(LOG_CTX, `Token #${tokenId} traits:`, characterTraits);
+    // Add experience specifically for metadata (ipfsManager expects it)
+    const traitsWithExp = {
+        ...characterTraits,
+        experience: Number(traits.experience || 0)
+    };
+
+    logger.info(LOG_CTX, `Token #${tokenId} traits:`, traitsWithExp);
 
     // Step 2: Generate image via DALL-E 3
     logger.info(LOG_CTX, `Generating AI image for token #${tokenId}...`);
     const { imageUrl, prompt } = await generateCharacterArt(String(tokenId), characterTraits);
     logger.info(LOG_CTX, `AI image generated for token #${tokenId}`);
 
-    // Step 3: Download the generated image
-    logger.info(LOG_CTX, `Downloading generated image for token #${tokenId}...`);
-    const imageBuffer = await downloadImage(imageUrl);
-    logger.info(LOG_CTX, `Image downloaded for token #${tokenId} (${imageBuffer.length} bytes)`);
-
-    // Step 4: Upload image to IPFS
-    const imageIPFSHash = await uploadImageToIPFS(imageBuffer, `character-${tokenId}.png`);
-    logger.info(LOG_CTX, `Image uploaded to IPFS: ipfs://${imageIPFSHash}`);
-
-    // Step 5: Upload complete metadata to IPFS
-    const metadataIPFSHash = await uploadCharacterMetadata(
-        tokenId,
-        imageIPFSHash,
-        characterTraits.characterClass,
-        {
-            level: characterTraits.level,
-            strength: characterTraits.strength,
-            agility: characterTraits.agility,
-            intelligence: characterTraits.intelligence,
-            generation: characterTraits.generation,
-        },
+    // Step 3: Upload complete data to IPFS (Image + Metadata)
+    logger.info(LOG_CTX, `Uploading complete NFT data to IPFS for token #${tokenId}...`);
+    const { metadataHash, imageHash } = await uploadCompleteNFTData(
+        imageUrl,
+        String(tokenId),
+        traitsWithExp,
         prompt
     );
-    logger.info(LOG_CTX, `Metadata uploaded to IPFS: ipfs://${metadataIPFSHash}`);
+    logger.info(LOG_CTX, `IPFS Upload complete: img=ipfs://${imageHash}, meta=ipfs://${metadataHash}`);
 
-    // Step 6: Call ArtGenerator contract to store on-chain
+    // Step 4: Call ArtGenerator contract to store on-chain
     const signer = getSigner();
     const artGenerator = getArtGeneratorContract(signer);
 
     logger.info(LOG_CTX, `Submitting on-chain transaction for token #${tokenId}...`);
-    const tx = await artGenerator.fulfillArt(tokenId, metadataIPFSHash, prompt);
+    const tx = await artGenerator.fulfillArt(tokenId, metadataHash, prompt);
     const receipt = await tx.wait();
 
     logger.info(LOG_CTX, `✅ Art generation complete for token #${tokenId}`, {
         txHash: receipt.hash,
-        imageIPFS: `ipfs://${imageIPFSHash}`,
-        metadataIPFS: `ipfs://${metadataIPFSHash}`,
+        imageIPFS: `ipfs://${imageHash}`,
+        metadataIPFS: `ipfs://${metadataHash}`,
     });
 
     return {
         tokenId,
-        imageIPFSHash,
-        metadataIPFSHash,
+        imageIPFSHash: imageHash,
+        metadataIPFSHash: metadataHash,
         prompt,
         txHash: receipt.hash,
     };

@@ -1,144 +1,148 @@
-/**
- * IPFS Manager — Handles uploading images and metadata to IPFS via Pinata.
- */
-
+import pinataSDK from '@pinata/sdk';
 import axios from 'axios';
-import FormData from 'form-data';
-import { config } from '../config/env';
-import { logger } from '../utils/logger';
-import { retryWithBackoff } from '../utils/helpers';
+import dotenv from 'dotenv';
 
-const LOG_CTX = 'IPFSManager';
-const PINATA_API_URL = 'https://api.pinata.cloud';
+dotenv.config();
+
+const pinata = new pinataSDK({
+    pinataApiKey: process.env.PINATA_API_KEY!,
+    pinataSecretApiKey: process.env.PINATA_SECRET_KEY!,
+});
+
+export interface NFTMetadata {
+    name: string;
+    description: string;
+    image: string;
+    attributes: Array<{
+        trait_type: string;
+        value: string | number;
+    }>;
+    external_url?: string;
+    animation_url?: string;
+}
 
 /**
- * Uploads an image buffer to IPFS via Pinata.
- * @param imageBuffer The image data as a Buffer.
- * @param fileName The file name for the uploaded image.
- * @returns The IPFS CID (Content Identifier) hash.
+ * Download image from URL and upload to IPFS
  */
-export async function uploadImageToIPFS(imageBuffer: Buffer, fileName: string): Promise<string> {
-    logger.info(LOG_CTX, `Uploading image to IPFS: ${fileName}`);
+export async function uploadImageToIPFS(
+    imageUrl: string,
+    tokenId: string
+): Promise<string> {
+    console.log(`Downloading image for token ${tokenId}...`);
 
-    const formData = new FormData();
-    formData.append('file', imageBuffer, {
-        filename: fileName,
-        contentType: 'image/png',
+    // Download image
+    const response = await axios.get(imageUrl, {
+        responseType: 'arraybuffer',
     });
 
-    const metadata = JSON.stringify({
-        name: fileName,
-        keyvalues: {
-            project: 'dynamic-nft-game',
-            type: 'character-art',
+    const buffer = Buffer.from(response.data);
+
+    // Upload to IPFS
+    console.log(`Uploading image to IPFS...`);
+    const result = await pinata.pinFileToIPFS(buffer, {
+        pinataMetadata: {
+            name: `character-${tokenId}.png`,
+        },
+        pinataOptions: {
+            cidVersion: 1,
         },
     });
-    formData.append('pinataMetadata', metadata);
 
-    const options = JSON.stringify({
-        cidVersion: 1,
-    });
-    formData.append('pinataOptions', options);
+    const ipfsHash = result.IpfsHash;
+    console.log(`✓ Image uploaded to IPFS: ${ipfsHash}`);
 
-    const response = await retryWithBackoff(async () => {
-        return axios.post(`${PINATA_API_URL}/pinning/pinFileToIPFS`, formData, {
-            maxBodyLength: Infinity,
-            headers: {
-                Authorization: `Bearer ${config.PINATA_JWT}`,
-                ...formData.getHeaders(),
-            },
-        });
-    });
-
-    const ipfsHash = response.data.IpfsHash;
-    logger.info(LOG_CTX, `Image uploaded to IPFS: ${ipfsHash}`);
     return ipfsHash;
 }
 
 /**
- * Uploads a JSON metadata object to IPFS via Pinata.
- * This creates the standard NFT metadata (name, description, image, attributes).
- * @param metadata The metadata object to upload.
- * @param name A name identifier for the pin.
- * @returns The IPFS CID hash of the metadata JSON.
+ * Upload base64 image to IPFS (for Stability AI)
+ */
+export async function uploadBase64ToIPFS(
+    base64Data: string,
+    tokenId: string
+): Promise<string> {
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    const result = await pinata.pinFileToIPFS(buffer, {
+        pinataMetadata: {
+            name: `character-${tokenId}.png`,
+        },
+    });
+
+    return result.IpfsHash;
+}
+
+/**
+ * Create and upload NFT metadata JSON to IPFS
  */
 export async function uploadMetadataToIPFS(
-    metadata: Record<string, unknown>,
-    name: string
+    metadata: NFTMetadata,
+    tokenId: string
 ): Promise<string> {
-    logger.info(LOG_CTX, `Uploading metadata to IPFS: ${name}`);
+    console.log(`Uploading metadata for token ${tokenId}...`);
 
-    const response = await retryWithBackoff(async () => {
-        return axios.post(
-            `${PINATA_API_URL}/pinning/pinJSONToIPFS`,
-            {
-                pinataContent: metadata,
-                pinataMetadata: {
-                    name,
-                    keyvalues: {
-                        project: 'dynamic-nft-game',
-                        type: 'character-metadata',
-                    },
-                },
-                pinataOptions: {
-                    cidVersion: 1,
-                },
-            },
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${config.PINATA_JWT}`,
-                },
-            }
-        );
+    const result = await pinata.pinJSONToIPFS(metadata, {
+        pinataMetadata: {
+            name: `character-${tokenId}-metadata.json`,
+        },
     });
 
-    const ipfsHash = response.data.IpfsHash;
-    logger.info(LOG_CTX, `Metadata uploaded to IPFS: ${ipfsHash}`);
+    const ipfsHash = result.IpfsHash;
+    console.log(`✓ Metadata uploaded to IPFS: ${ipfsHash}`);
+
     return ipfsHash;
 }
 
 /**
- * Builds and uploads complete NFT metadata (image + JSON) to IPFS.
- * @param tokenId The token ID.
- * @param imageHash The IPFS hash of the character image.
- * @param characterClass The character's class.
- * @param traits Character trait values.
- * @param prompt The AI prompt used to generate the art.
- * @returns The IPFS CID hash of the complete metadata JSON.
+ * Complete upload: image + metadata
  */
-export async function uploadCharacterMetadata(
-    tokenId: number,
-    imageHash: string,
-    characterClass: string,
-    traits: { level: number; strength: number; agility: number; intelligence: number; generation: number },
-    prompt: string
-): Promise<string> {
-    const metadata = {
+export async function uploadCompleteNFTData(
+    imageUrl: string,
+    tokenId: string,
+    traits: any,
+    aiPrompt: string
+): Promise<{ metadataHash: string; imageHash: string }> {
+    // 1. Upload image
+    const imageHash = await uploadImageToIPFS(imageUrl, tokenId);
+
+    // 2. Create metadata
+    const metadata: NFTMetadata = {
         name: `Character #${tokenId}`,
-        description: `A dynamic NFT game character of the ${characterClass} class. AI-generated unique artwork.`,
+        description: `Dynamic NFT Game Character - ${traits.characterClass}. AI-generated artwork based on character traits.`,
         image: `ipfs://${imageHash}`,
-        external_url: `https://dynamic-nft-game.com/character/${tokenId}`,
         attributes: [
-            { trait_type: 'Class', value: characterClass },
-            { trait_type: 'Level', display_type: 'number', value: traits.level },
-            { trait_type: 'Strength', display_type: 'number', value: traits.strength },
-            { trait_type: 'Agility', display_type: 'number', value: traits.agility },
-            { trait_type: 'Intelligence', display_type: 'number', value: traits.intelligence },
-            { trait_type: 'Generation', display_type: 'number', value: traits.generation },
+            { trait_type: 'Class', value: traits.characterClass },
+            { trait_type: 'Level', value: traits.level },
+            { trait_type: 'Strength', value: traits.strength },
+            { trait_type: 'Agility', value: traits.agility },
+            { trait_type: 'Intelligence', value: traits.intelligence },
+            { trait_type: 'Generation', value: traits.generation },
+            { trait_type: 'Experience', value: traits.experience },
             { trait_type: 'AI Generated', value: 'Yes' },
+            { trait_type: 'AI Prompt', value: aiPrompt },
         ],
-        properties: {
-            ai_prompt: prompt,
-            generated_at: new Date().toISOString(),
-        },
+        external_url: `https://yourgame.com/character/${tokenId}`,
     };
 
-    return uploadMetadataToIPFS(metadata, `character-${tokenId}-metadata`);
+    // 3. Upload metadata
+    const metadataHash = await uploadMetadataToIPFS(metadata, tokenId);
+
+    return {
+        metadataHash,
+        imageHash,
+    };
 }
 
-export default {
-    uploadImageToIPFS,
-    uploadMetadataToIPFS,
-    uploadCharacterMetadata,
-};
+/**
+ * Test IPFS connection
+ */
+export async function testPinataConnection(): Promise<boolean> {
+    try {
+        await pinata.testAuthentication();
+        console.log('✓ Pinata connection successful');
+        return true;
+    } catch (error: any) {
+        console.error('✗ Pinata connection failed:', error.message);
+        return false;
+    }
+}
