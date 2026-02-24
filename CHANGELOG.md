@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Added `ArtMetadataSet` and `ArtGeneratorUpdated` events.
     - Imported `Base64.sol` and `Strings.sol` from OpenZeppelin.
     - Updated storage gap from 32 to 31 to account for the new `artGeneratorContract` variable.
+    - Added `scripts/deploy/11-deploy-art-generator.ts` for automated deployment and post-deployment configuration.
 
 - **Backend AI Art Generation Service (`backend/`):**
     - Initialized Node.js + TypeScript backend with Express server.
