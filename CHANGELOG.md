@@ -22,15 +22,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Initialized Node.js + TypeScript backend with Express server.
     - Created `src/config/env.ts` for centralized environment variable loading with validation.
     - Created `src/config/contracts.ts` with ABI definitions and ethers.js v6 contract factory functions.
-    - Created `src/services/openaiService.ts` with dual-provider support (DALL-E 3 + Stability AI) and automatic fallback.
+    - Created `src/services/openaiService.ts` with sophisticated trait-based prompt construction:
+        - Logic to detect dominant stats (Strength/Agility/Intelligence) and set visual appearance.
+        - Class-specific descriptive markers (Warrior, Mage, Rogue).
+        - Quality/Heritage tiers based on character Level and Generation.
+        - Dual-provider support (DALL-E 3 + Stability AI) with TypeScript safety.
     - Created `src/services/ipfsManager.ts` for Pinata IPFS uploads (images + NFT metadata JSON).
-    - Created `src/services/artGenerator.ts` as the main orchestrator: reads on-chain traits → builds AI prompt → generates image → uploads to IPFS → stores hash on-chain.
-    - Created `src/listeners/mintListener.ts` to watch `CharacterMinted` and `TraitsRevealed` events and trigger art generation.
-    - Created `src/utils/logger.ts` with color-coded structured logging.
-    - Created `src/utils/helpers.ts` with retry logic (exponential backoff) and AI prompt builder.
-    - Created `src/server.ts` with Express API (`/health`, `/api/art/status/:tokenId`, `/api/art/generate`).
-    - Installed dependencies: express, dotenv, ethers@6, openai, axios, form-data, @pinata/sdk.
-    - Installed dev dependencies: typescript, @types/node, @types/express, ts-node, nodemon.
+    - Created `src/services/artGenerator.ts` as the main orchestrator:
+        - Fetches on-chain traits and triggers AI art generation.
+        - **New:** Implemented image downloading from OpenAI/Stability URLs before IPFS upload.
+        - Coordinates IPFS asset pinning and on-chain metadata storage.
+    - Created `src/listeners/mintListener.ts` to watch `CharacterMinted` and `TraitsRevealed` events.
+    - Created `src/utils/logger.ts` for color-coded structured logging.
+    - Created `src/utils/helpers.ts` with retry logic and prompt builders.
+    - Created `src/server.ts` with health checks and manual trigger API endpoints.
     - Configured `tsconfig.json` and npm scripts (`dev`, `build`, `start`, `listen`).
 
 ## [0.10.2] - 2026-02-14

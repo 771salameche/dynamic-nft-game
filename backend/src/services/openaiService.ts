@@ -1,119 +1,139 @@
-/**
- * OpenAI Service — Generates character art using DALL-E 3.
- * Falls back to Stability AI if configured.
- */
-
 import OpenAI from 'openai';
+import dotenv from 'dotenv';
 import axios from 'axios';
-import { config } from '../config/env';
-import { logger } from '../utils/logger';
-import { retryWithBackoff } from '../utils/helpers';
 
-const LOG_CTX = 'OpenAIService';
+dotenv.config();
 
-// Initialize OpenAI client
 const openai = new OpenAI({
-    apiKey: config.OPENAI_API_KEY,
+    apiKey: process.env.OPENAI_API_KEY,
 });
 
-/**
- * Generates an image using OpenAI DALL-E 3.
- * @param prompt The text prompt describing the character.
- * @returns A Buffer containing the generated image data.
- */
-export async function generateImageWithDallE(prompt: string): Promise<Buffer> {
-    logger.info(LOG_CTX, 'Generating image with DALL-E 3...');
-    logger.debug(LOG_CTX, 'Prompt:', prompt);
-
-    const response = await retryWithBackoff(async () => {
-        return openai.images.generate({
-            model: 'dall-e-3',
-            prompt,
-            n: 1,
-            size: '1024x1024',
-            quality: 'standard',
-            response_format: 'b64_json',
-        });
-    });
-
-    const imageData = response.data?.[0]?.b64_json;
-    if (!imageData) {
-        throw new Error('No image data returned from DALL-E');
-    }
-
-    logger.info(LOG_CTX, 'Image generated successfully with DALL-E 3');
-    return Buffer.from(imageData, 'base64');
+export interface CharacterTraits {
+    characterClass: string;
+    level: number;
+    strength: number;
+    agility: number;
+    intelligence: number;
+    generation: number;
 }
 
-/**
- * Generates an image using Stability AI (Stable Diffusion).
- * Only used if STABILITY_API_KEY is configured.
- * @param prompt The text prompt describing the character.
- * @returns A Buffer containing the generated image data.
- */
-export async function generateImageWithStability(prompt: string): Promise<Buffer> {
-    if (!config.STABILITY_API_KEY) {
-        throw new Error('STABILITY_API_KEY not configured');
+export async function generateCharacterArt(
+    tokenId: string,
+    traits: CharacterTraits
+): Promise<{ imageUrl: string; prompt: string }> {
+    console.log(`Generating art for character ${tokenId}...`);
+
+    // Construct AI prompt based on character traits
+    const prompt = constructArtPrompt(traits);
+
+    try {
+        // Call DALL-E 3
+        const response = await openai.images.generate({
+            model: "dall-e-3",
+            prompt: prompt,
+            n: 1,
+            size: "1024x1024",
+            quality: "standard",
+            style: "vivid",
+        });
+
+        const imageUrl = response.data?.[0]?.url;
+
+        if (!imageUrl) {
+            throw new Error('No image URL returned from OpenAI');
+        }
+
+        console.log(`✓ Art generated for character ${tokenId}`);
+
+        return {
+            imageUrl,
+            prompt,
+        };
+    } catch (error: any) {
+        console.error(`✗ Failed to generate art for ${tokenId}:`, error.message);
+        throw error;
+    }
+}
+
+function constructArtPrompt(traits: CharacterTraits): string {
+    const { characterClass, strength, agility, intelligence, level, generation } = traits;
+
+    // Determine dominant stat
+    const stats = [
+        { name: 'strength', value: strength },
+        { name: 'agility', value: agility },
+        { name: 'intelligence', value: intelligence },
+    ];
+    const dominantStat = stats.reduce((a, b) => (a.value > b.value ? a : b));
+
+    // Build descriptive elements based on stats
+    let appearance = '';
+
+    if (dominantStat.name === 'strength') {
+        appearance = 'muscular, powerful build, heavy armor';
+    } else if (dominantStat.name === 'agility') {
+        appearance = 'lean, agile physique, light armor, swift';
+    } else {
+        appearance = 'mystical aura, robes, holding magical staff';
     }
 
-    logger.info(LOG_CTX, 'Generating image with Stability AI...');
-    logger.debug(LOG_CTX, 'Prompt:', prompt);
+    // Class-specific elements
+    const classDescriptions: Record<string, string> = {
+        Warrior: 'fierce warrior with sword and shield',
+        Mage: 'wise mage with flowing robes and glowing hands',
+        Rogue: 'cunning rogue with daggers and dark cloak',
+    };
 
-    const response = await retryWithBackoff(async () => {
-        return axios.post(
-            'https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image',
-            {
-                text_prompts: [
-                    { text: prompt, weight: 1 },
-                    { text: 'blurry, bad quality, distorted, ugly', weight: -1 },
-                ],
-                cfg_scale: 7,
-                width: 1024,
-                height: 1024,
-                samples: 1,
-                steps: 30,
+    const classDesc = classDescriptions[characterClass] || 'fantasy hero';
+
+    // Level-based quality
+    const quality = level > 50 ? 'legendary, epic' : level > 25 ? 'elite, powerful' : 'skilled';
+
+    // Generation indicator
+    const heritage = generation > 2 ? 'ancient bloodline, noble lineage' : 'fresh, determined';
+
+    // Combine into final prompt
+    const finalPrompt = `A ${quality} ${classDesc}, ${appearance}, ${heritage}. 
+    Fantasy game character portrait, detailed digital art, front-facing view, 
+    neutral background, professional game asset style, high quality, 
+    vibrant colors, dramatic lighting`;
+
+    return finalPrompt.replace(/\s+/g, ' ').trim();
+}
+
+// Alternative: Stability AI version
+export async function generateCharacterArtStability(
+    tokenId: string,
+    traits: CharacterTraits
+): Promise<{ imageBase64: string; prompt: string }> {
+    const prompt = constructArtPrompt(traits);
+
+    const response = await axios.post(
+        'https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image',
+        {
+            text_prompts: [{ text: prompt }],
+            cfg_scale: 7,
+            height: 1024,
+            width: 1024,
+            steps: 30,
+            samples: 1,
+        },
+        {
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
             },
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${config.STABILITY_API_KEY}`,
-                    Accept: 'application/json',
-                },
-            }
-        );
-    });
+        }
+    );
 
-    const imageBase64 = response.data.artifacts?.[0]?.base64;
+    const imageBase64 = response.data?.artifacts?.[0]?.base64;
+
     if (!imageBase64) {
         throw new Error('No image data returned from Stability AI');
     }
 
-    logger.info(LOG_CTX, 'Image generated successfully with Stability AI');
-    return Buffer.from(imageBase64, 'base64');
+    return {
+        imageBase64,
+        prompt,
+    };
 }
-
-/**
- * Generates a character image using the best available AI provider.
- * Prefers Stability AI (cheaper), falls back to DALL-E 3.
- * @param prompt The text prompt describing the character.
- * @returns A Buffer containing the generated image data.
- */
-export async function generateCharacterImage(prompt: string): Promise<Buffer> {
-    // Prefer Stability AI if configured (cheaper)
-    if (config.STABILITY_API_KEY) {
-        try {
-            return await generateImageWithStability(prompt);
-        } catch (error) {
-            logger.warn(LOG_CTX, 'Stability AI failed, falling back to DALL-E 3', error);
-        }
-    }
-
-    // Fall back to DALL-E 3
-    return generateImageWithDallE(prompt);
-}
-
-export default {
-    generateCharacterImage,
-    generateImageWithDallE,
-    generateImageWithStability,
-};

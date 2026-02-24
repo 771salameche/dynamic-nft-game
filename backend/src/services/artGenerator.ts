@@ -1,17 +1,16 @@
 /**
  * Art Generator Service — Orchestrates the full AI art generation pipeline:
  *   1. Read character traits from the blockchain
- *   2. Build an AI prompt from the traits
- *   3. Generate an image via OpenAI/Stability AI
+ *   2. Generate an image via OpenAI DALL-E 3
+ *   3. Download the generated image
  *   4. Upload image + metadata to IPFS via Pinata
  *   5. Call ArtGenerator contract to store the IPFS hash on-chain
  */
 
-import { ethers } from 'ethers';
+import axios from 'axios';
 import { getGameCharacterContract, getArtGeneratorContract, getSigner } from '../config/contracts';
-import { generateCharacterImage } from './openaiService';
+import { generateCharacterArt, CharacterTraits } from './openaiService';
 import { uploadImageToIPFS, uploadCharacterMetadata } from './ipfsManager';
-import { buildArtPrompt } from '../utils/helpers';
 import { logger } from '../utils/logger';
 
 const LOG_CTX = 'ArtGenerator';
@@ -22,6 +21,14 @@ export interface ArtGenerationResult {
     metadataIPFSHash: string;
     prompt: string;
     txHash: string;
+}
+
+/**
+ * Downloads an image from a URL and returns it as a Buffer.
+ */
+async function downloadImage(url: string): Promise<Buffer> {
+    const response = await axios.get(url, { responseType: 'arraybuffer' });
+    return Buffer.from(response.data);
 }
 
 /**
@@ -38,30 +45,26 @@ export async function generateArtForCharacter(tokenId: number): Promise<ArtGener
     const gameCharacter = getGameCharacterContract();
     const traits = await gameCharacter.getCharacterTraits(tokenId);
 
-    const characterClass: string = traits.characterClass;
-    const strength = Number(traits.strength);
-    const agility = Number(traits.agility);
-    const intelligence = Number(traits.intelligence);
-    const level = Number(traits.level);
-    const generation = Number(traits.generation);
+    const characterTraits: CharacterTraits = {
+        characterClass: traits.characterClass,
+        strength: Number(traits.strength),
+        agility: Number(traits.agility),
+        intelligence: Number(traits.intelligence),
+        level: Number(traits.level),
+        generation: Number(traits.generation),
+    };
 
-    logger.info(LOG_CTX, `Token #${tokenId} traits:`, {
-        characterClass,
-        strength,
-        agility,
-        intelligence,
-        level,
-        generation,
-    });
+    logger.info(LOG_CTX, `Token #${tokenId} traits:`, characterTraits);
 
-    // Step 2: Build AI prompt from traits
-    const prompt = buildArtPrompt(characterClass, strength, agility, intelligence, level, generation);
-    logger.info(LOG_CTX, `Generated prompt for token #${tokenId}`);
-
-    // Step 3: Generate image via AI
+    // Step 2: Generate image via DALL-E 3
     logger.info(LOG_CTX, `Generating AI image for token #${tokenId}...`);
-    const imageBuffer = await generateCharacterImage(prompt);
-    logger.info(LOG_CTX, `AI image generated for token #${tokenId} (${imageBuffer.length} bytes)`);
+    const { imageUrl, prompt } = await generateCharacterArt(String(tokenId), characterTraits);
+    logger.info(LOG_CTX, `AI image generated for token #${tokenId}`);
+
+    // Step 3: Download the generated image
+    logger.info(LOG_CTX, `Downloading generated image for token #${tokenId}...`);
+    const imageBuffer = await downloadImage(imageUrl);
+    logger.info(LOG_CTX, `Image downloaded for token #${tokenId} (${imageBuffer.length} bytes)`);
 
     // Step 4: Upload image to IPFS
     const imageIPFSHash = await uploadImageToIPFS(imageBuffer, `character-${tokenId}.png`);
@@ -71,8 +74,14 @@ export async function generateArtForCharacter(tokenId: number): Promise<ArtGener
     const metadataIPFSHash = await uploadCharacterMetadata(
         tokenId,
         imageIPFSHash,
-        characterClass,
-        { level, strength, agility, intelligence, generation },
+        characterTraits.characterClass,
+        {
+            level: characterTraits.level,
+            strength: characterTraits.strength,
+            agility: characterTraits.agility,
+            intelligence: characterTraits.intelligence,
+            generation: characterTraits.generation,
+        },
         prompt
     );
     logger.info(LOG_CTX, `Metadata uploaded to IPFS: ipfs://${metadataIPFSHash}`);
