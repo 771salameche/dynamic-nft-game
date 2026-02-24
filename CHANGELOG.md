@@ -34,12 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Simplified `src/services/artGenerator.ts`:
         - Refactored orchestrator to use `uploadCompleteNFTData`, reducing code complexity and improving reliability.
         - Integrated character experience tracking into metadata generation.
-    - Created `src/listeners/mintListener.ts` to watch `CharacterMinted` and `TraitsRevealed` events.
+    - Overhauled `src/listeners/mintListener.ts` to use `WebSocketProvider` for real-time event monitoring, including event deduplication and trait reveal triggers.
     - Created `src/utils/logger.ts` for color-coded structured logging.
     - Created `src/utils/helpers.ts` with retry logic and prompt builders.
     - Created `src/server.ts` with health checks and manual trigger API endpoints.
     - Added `src/scripts/manualTest.ts` for command-line CI/CD and manual testing of the AI pipeline.
-    - Configured `tsconfig.json` and npm scripts (`dev`, `build`, `start`, `listen`, `test:manual`).
+    - Configured `tsconfig.json` and npm scripts (`dev`, `build`, `start`, `listen`, `test:manual`, `listen:mint`).
 
 ## [0.10.2] - 2026-02-14
 

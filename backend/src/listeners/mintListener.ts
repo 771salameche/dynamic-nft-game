@@ -1,96 +1,99 @@
-/**
- * Mint Listener — Listens for CharacterMinted events on the GameCharacter contract
- * and triggers AI art generation for each newly minted character.
- */
-
 import { ethers } from 'ethers';
-import { getGameCharacterContract, getProvider } from '../config/contracts';
-import { processArtGeneration, isArtGenerated } from '../services/artGenerator';
-import { logger } from '../utils/logger';
-import { sleep } from '../utils/helpers';
+import { processArtGeneration } from '../services/artGenerator';
+import dotenv from 'dotenv';
 
-const LOG_CTX = 'MintListener';
+dotenv.config();
 
-/**
- * Starts listening for CharacterMinted events.
- * When a mint is detected, generates AI art for the new character.
- */
+const GameCharacterABI = require('../../../artifacts/contracts/GameCharacter.sol/GameCharacter.json').abi;
+
+const provider = new ethers.WebSocketProvider(
+    process.env.POLYGON_AMOY_WS_URL! // Note: Use WebSocket URL
+);
+
+const gameCharacterContract = new ethers.Contract(
+    process.env.GAME_CHARACTER_ADDRESS!,
+    GameCharacterABI,
+    provider
+);
+
+// Track processed events to avoid duplicates
+const processedEvents = new Set<string>();
+
 export async function startMintListener(): Promise<void> {
-    const provider = getProvider();
-    const gameCharacter = getGameCharacterContract(provider);
-
-    logger.info(LOG_CTX, '🎧 Starting mint event listener...');
-    logger.info(LOG_CTX, `Listening on contract: ${await gameCharacter.getAddress()}`);
+    console.log('🎨 Starting mint event listener...');
+    console.log(`Watching contract: ${process.env.GAME_CHARACTER_ADDRESS}`);
 
     // Listen for CharacterMinted events
-    gameCharacter.on('CharacterMinted', async (tokenId: bigint, owner: string, characterClass: string) => {
-        const id = Number(tokenId);
-        logger.info(LOG_CTX, `🎉 New character minted!`, {
-            tokenId: id,
-            owner,
-            characterClass,
-        });
+    gameCharacterContract.on(
+        'CharacterMinted',
+        async (tokenId: bigint, owner: string, characterClass: string, event: any) => {
+            const eventId = `${event.transactionHash}-${event.logIndex}`;
 
-        // Small delay to ensure VRF traits are set (random traits come async)
-        logger.info(LOG_CTX, `Waiting for VRF traits to be set for token #${id}...`);
-        await sleep(30000); // Wait 30 seconds for VRF callback
-
-        try {
-            // Check if art was already generated (e.g., from a previous run)
-            const alreadyGenerated = await isArtGenerated(id);
-            if (alreadyGenerated) {
-                logger.warn(LOG_CTX, `Art already generated for token #${id}, skipping.`);
+            // Prevent duplicate processing
+            if (processedEvents.has(eventId)) {
                 return;
             }
+            processedEvents.add(eventId);
 
-            // Generate AI art
-            await processArtGeneration(String(id));
-            logger.info(LOG_CTX, `✅ Art generation pipeline complete for token #${id}`);
-        } catch (error: any) {
-            logger.error(LOG_CTX, `❌ Art generation failed for token #${id}`, error);
-        }
-    });
+            console.log('\n🎉 New character minted!');
+            console.log(`Token ID: ${tokenId.toString()}`);
+            console.log(`Owner: ${owner}`);
+            console.log(`Class: ${characterClass}`);
+            console.log(`Transaction: ${event.transactionHash}`);
 
-    // Also listen for TraitsRevealed as an alternative trigger
-    // (more reliable since traits are guaranteed to be set)
-    gameCharacter.on('TraitsRevealed', async (tokenId: bigint, traits: bigint[]) => {
-        const id = Number(tokenId);
-        logger.info(LOG_CTX, `🎲 Traits revealed for token #${id}:`, {
-            strength: Number(traits[0]),
-            agility: Number(traits[1]),
-            intelligence: Number(traits[2]),
-        });
+            try {
+                // Wait a few seconds for VRF traits to be set
+                console.log('⏳ Waiting for VRF traits assignment...');
+                await new Promise(resolve => setTimeout(resolve, 10000)); // 10 seconds
 
-        try {
-            const alreadyGenerated = await isArtGenerated(id);
-            if (alreadyGenerated) {
-                logger.info(LOG_CTX, `Art already generated for token #${id}, skipping.`);
-                return;
+                // Process art generation
+                await processArtGeneration(tokenId.toString());
+            } catch (error: any) {
+                console.error('❌ Failed to process art generation:', error.message);
+                // Could retry or log to database for manual processing
             }
-
-            // Generate art now that traits are confirmed
-            await processArtGeneration(String(id));
-            logger.info(LOG_CTX, `✅ Art generated after trait reveal for token #${id}`);
-        } catch (error: any) {
-            logger.error(LOG_CTX, `❌ Art generation after trait reveal failed for token #${id}`, error);
         }
+    );
+
+    console.log('✅ Listener active. Waiting for mint events...\n');
+
+    // Handle connection errors
+    provider.on('error', (error) => {
+        console.error('❌ WebSocket error:', error);
+        // Implement reconnection logic
     });
 
     // Keep the process alive
-    logger.info(LOG_CTX, '✅ Mint listener is active and waiting for events...');
-
-    // Handle provider disconnection
-    provider.on('error', (error: unknown) => {
-        logger.error(LOG_CTX, 'Provider error:', error);
+    process.on('SIGINT', () => {
+        console.log('\n👋 Shutting down listener...');
+        provider.destroy();
+        process.exit(0);
     });
 }
 
-// Allow running this file directly: ts-node src/listeners/mintListener.ts
+// Optional: Listen for TraitsUpdated to catch VRF callbacks
+export async function listenForTraitsUpdated(): Promise<void> {
+    gameCharacterContract.on(
+        'TraitsUpdated',
+        async (tokenId: bigint, traits: any, event: any) => {
+            console.log(`\n✨ Traits updated for token ${tokenId}`);
+
+            // Check if art already generated
+            const artMetadata = await gameCharacterContract.artMetadata(tokenId);
+
+            if (!artMetadata.isGenerated) {
+                console.log('🎨 Triggering art generation...');
+                try {
+                    await processArtGeneration(tokenId.toString());
+                } catch (error: any) {
+                    console.error('❌ Art generation failed:', error.message);
+                }
+            }
+        }
+    );
+}
+
+// Start listener if run directly
 if (require.main === module) {
-    startMintListener().catch((error) => {
-        logger.error(LOG_CTX, 'Failed to start mint listener:', error);
-        process.exit(1);
-    });
+    startMintListener().catch(console.error);
 }
-
-export default { startMintListener };
