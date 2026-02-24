@@ -8,9 +8,12 @@
  */
 
 import express, { Request, Response, NextFunction } from 'express';
+import { ethers } from 'ethers';
 import { config } from './config/env';
 import { processArtGeneration, isArtGenerated } from './services/artGenerator';
 import { startMintListener } from './listeners/mintListener';
+import { startQuestListener } from './listeners/questListener';
+import { getSmartQuestContract, getProvider } from './config/contracts';
 import { logger } from './utils/logger';
 
 const LOG_CTX = 'Server';
@@ -107,6 +110,65 @@ app.post('/api/art/generate', async (req: Request, res: Response) => {
     }
 });
 
+// --- Quest Routes ---
+
+/**
+ * Get active quest for a player.
+ */
+app.get('/api/quest/status/:player', async (req: Request<{ player: string }>, res: Response) => {
+    try {
+        const { player } = req.params;
+        if (!ethers.isAddress(player)) {
+            res.status(400).json({ error: 'Invalid player address' });
+            return;
+        }
+
+        const smartQuest = getSmartQuestContract(getProvider());
+        try {
+            const activeQuest = await smartQuest.getActiveQuest(player);
+            res.json({
+                hasActiveQuest: true,
+                quest: {
+                    questId: Number(activeQuest.questId),
+                    description: activeQuest.description,
+                    questType: Number(activeQuest.questType),
+                    difficulty: Number(activeQuest.difficulty),
+                    expiresAt: Number(activeQuest.expiresAt),
+                    completed: activeQuest.completed
+                }
+            });
+        } catch (e) {
+            res.json({ hasActiveQuest: false });
+        }
+    } catch (error) {
+        logger.error(LOG_CTX, 'Error checking quest status', error);
+        res.status(500).json({ error: 'Failed to check quest status' });
+    }
+});
+
+/**
+ * Manually request a quest for a player (Utility).
+ * In production, players call this directly on-chain.
+ */
+app.post('/api/quest/request', async (req: Request, res: Response) => {
+    try {
+        const { player } = req.body;
+        if (!player || !ethers.isAddress(player)) {
+            res.status(400).json({ error: 'Invalid player address' });
+            return;
+        }
+
+        logger.info(LOG_CTX, `Manual quest request triggered for ${player}`);
+        // This just logs it — the listener should catch the on-chain event if the player actually calls it.
+        // For testing, we could submit the transaction if we have their private key, 
+        // but typically we just wait for the event.
+        res.json({ message: 'Listening for onto-chain QuestRequested event', player });
+    } catch (error) {
+        logger.error(LOG_CTX, 'Error handling manual quest request', error);
+        res.status(500).json({ error: 'Internal error' });
+    }
+});
+
 // --- Error Handler ---
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction): void => {
@@ -122,12 +184,15 @@ async function main(): Promise<void> {
         logger.info(LOG_CTX, `Environment: ${config.NODE_ENV}`);
     });
 
-    // Start blockchain event listener
+    // Start blockchain event listeners
     try {
         await startMintListener();
-        logger.info(LOG_CTX, '🎧 Blockchain event listener started');
+        logger.info(LOG_CTX, '🎧 Mint listener started');
+
+        await startQuestListener();
+        logger.info(LOG_CTX, '🎧 Quest listener started');
     } catch (error) {
-        logger.error(LOG_CTX, 'Failed to start mint listener — running in API-only mode', error);
+        logger.error(LOG_CTX, 'Failed to start listeners — running in API-only mode', error);
     }
 }
 

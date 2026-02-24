@@ -9,6 +9,7 @@ interface EnvConfig {
     PRIVATE_KEY: string;
     GAME_CHARACTER_ADDRESS: string;
     ART_GENERATOR_ADDRESS: string;
+    SMART_QUEST_ENGINE_ADDRESS: string;
 
     // AI Services
     OPENAI_API_KEY: string;
@@ -38,6 +39,7 @@ export const config: EnvConfig = {
     PRIVATE_KEY: getEnvVar('PRIVATE_KEY'),
     GAME_CHARACTER_ADDRESS: getEnvVar('GAME_CHARACTER_ADDRESS'),
     ART_GENERATOR_ADDRESS: getEnvVar('ART_GENERATOR_ADDRESS'),
+    SMART_QUEST_ENGINE_ADDRESS: getEnvVar('SMART_QUEST_ENGINE_ADDRESS'),
 
     // AI Services
     OPENAI_API_KEY: getEnvVar('OPENAI_API_KEY'),

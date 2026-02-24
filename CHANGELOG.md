@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Imported `Base64.sol` and `Strings.sol` from OpenZeppelin.
     - Updated storage gap from 32 to 31 to account for the new `artGeneratorContract` variable.
     - Added `scripts/deploy/11-deploy-art-generator.ts` for automated deployment and post-deployment configuration.
+- **AI Personalized Quest System in SmartQuestEngine.sol:**
+    - Implemented `SmartQuestEngine.sol` for generating per-player dynamic quests.
+    - Added `SmartQuest` struct and `QuestType`/`QuestDifficulty` enums.
+    - Implemented `requestQuest()` for players to trigger AI quest generation.
+    - Implemented `fulfillQuest()` for authorized backend fulfiller to submit AI-generated content.
+    - Implemented `completeQuest()` to reward players with GameToken (minting) and GameCharacter XP.
+    - Added `QuestRequested`, `QuestGenerated`, `QuestCompleted`, and `QuestExpired` events.
+    - Created `scripts/deploy/12-deploy-smart-quest-engine.ts` for automated deployment.
 
 - **Backend AI Art Generation Service (`backend/`):**
     - Initialized Node.js + TypeScript backend with Express server.
@@ -41,6 +49,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Created `src/server.ts` with health checks and manual trigger API endpoints.
     - Added `src/scripts/generateArt.ts` for comprehensive CLI-based art generation (single, batch, and "missing-only" modes).
     - Configured `tsconfig.json` and npm scripts (`dev`, `build`, `start`, `listen`, `test:manual`, `listen:mint`, `generate-art`).
+- **Backend AI Quest Service:**
+    - Implemented `src/services/questGenerator.ts` using OpenAI GPT-4 Turbo for dynamic quest creation.
+    - Implemented `src/listeners/questListener.ts` to watch for `QuestRequested` events and fulfill them automatically.
+    - Integrated quest status and manual request endpoints into `src/server.ts`.
 
 ## [0.10.2] - 2026-02-14
 

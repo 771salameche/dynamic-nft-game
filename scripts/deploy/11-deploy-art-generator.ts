@@ -5,12 +5,14 @@ async function main() {
     console.log("Deploying ArtGenerator...");
 
     // Load existing deployments
-    const deploymentsPath = "deployments/amoy.json";
+    const network = "amoy";
+    const deploymentsPath = "deployments/deployments.json";
     if (!fs.existsSync(deploymentsPath)) {
         console.error(`Deployments file not found at ${deploymentsPath}`);
         process.exit(1);
     }
-    const deployments = JSON.parse(fs.readFileSync(deploymentsPath, "utf8"));
+    const allDeployments = JSON.parse(fs.readFileSync(deploymentsPath, "utf8"));
+    const deployments = allDeployments[network];
 
     const [deployer] = await ethers.getSigners();
     console.log("Deploying with account:", deployer.address);
@@ -24,8 +26,8 @@ async function main() {
     console.log("ArtGenerator deployed to:", artGeneratorAddress);
 
     // Save deployment
-    deployments.ArtGenerator = artGeneratorAddress;
-    fs.writeFileSync(deploymentsPath, JSON.stringify(deployments, null, 2));
+    allDeployments[network].ArtGenerator = artGeneratorAddress;
+    fs.writeFileSync(deploymentsPath, JSON.stringify(allDeployments, null, 2));
 
     console.log("\n=== Post-Deployment Configuration ===");
 
