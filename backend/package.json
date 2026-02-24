@@ -9,6 +9,7 @@
     "listen": "ts-node src/listeners/mintListener.ts",
     "test:manual": "ts-node src/scripts/manualTest.ts",
     "listen:mint": "ts-node src/listeners/mintListener.ts",
+    "listen:quests": "ts-node src/listeners/questListener.ts",
     "generate-art": "ts-node src/scripts/generateArt.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

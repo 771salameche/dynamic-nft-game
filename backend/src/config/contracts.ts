@@ -49,6 +49,11 @@ export function getProvider(): ethers.JsonRpcProvider {
     return new ethers.JsonRpcProvider(config.POLYGON_AMOY_RPC_URL);
 }
 
+export function getWebSocketProvider(): ethers.WebSocketProvider | null {
+    if (!config.POLYGON_AMOY_WS_URL) return null;
+    return new ethers.WebSocketProvider(config.POLYGON_AMOY_WS_URL);
+}
+
 export function getSigner(): ethers.Wallet {
     const provider = getProvider();
     return new ethers.Wallet(config.PRIVATE_KEY, provider);
@@ -73,6 +78,7 @@ export function getSmartQuestContract(signerOrProvider?: ethers.Signer | ethers.
 
 export default {
     getProvider,
+    getWebSocketProvider,
     getSigner,
     getGameCharacterContract,
     getArtGeneratorContract,

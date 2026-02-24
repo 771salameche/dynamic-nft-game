@@ -6,6 +6,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 interface EnvConfig {
     // Blockchain
     POLYGON_AMOY_RPC_URL: string;
+    POLYGON_AMOY_WS_URL: string;
     PRIVATE_KEY: string;
     GAME_CHARACTER_ADDRESS: string;
     ART_GENERATOR_ADDRESS: string;
@@ -37,6 +38,7 @@ function getEnvVar(key: string, required = true): string {
 export const config: EnvConfig = {
     // Blockchain
     POLYGON_AMOY_RPC_URL: getEnvVar('POLYGON_AMOY_RPC_URL'),
+    POLYGON_AMOY_WS_URL: getEnvVar('POLYGON_AMOY_WS_URL', false) || '',
     PRIVATE_KEY: getEnvVar('PRIVATE_KEY'),
     GAME_CHARACTER_ADDRESS: getEnvVar('GAME_CHARACTER_ADDRESS'),
     ART_GENERATOR_ADDRESS: getEnvVar('ART_GENERATOR_ADDRESS'),
