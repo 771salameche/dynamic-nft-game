@@ -1,113 +1,65 @@
 'use client';
 
-import { useReadContract, useReadContracts, useAccount, useWatchContractEvent } from 'wagmi';
-import { ACHIEVEMENT_ADDRESS, ACHIEVEMENT_ABI } from '@/lib/contracts';
-import { Address } from 'viem';
-import { Achievement, PlayerAchievement } from '@/types/game';
 import { useMemo } from 'react';
-import { showAchievementToast } from '@/components/achievements/AchievementNotification';
-import { formatUnits } from 'viem';
+import { useAccount, useReadContract } from 'wagmi';
+import { parseAbi } from 'viem';
 
-export function useAchievements(owner?: Address) {
+export const achievementAbi = parseAbi([
+  "function getPlayerAchievements(address player) external view returns (uint256[] memory)",
+  "function getProgress(address player, uint256 achievementId) external view returns (uint256 current, uint256 required, bool completed)"
+]);
+
+export function useAchievements(playerAddress?: `0x${string}`) {
   const { address: connectedAddress } = useAccount();
-  const targetAddress = owner || connectedAddress;
+  const addressToUse = playerAddress || connectedAddress;
+  const contractAddress = process.env.NEXT_PUBLIC_ACHIEVEMENT_TRACKER_ADDRESS as `0x${string}`;
 
-  // 1. Get total achievements count
-  const { data: totalAchievements } = useReadContract({
-    address: ACHIEVEMENT_ADDRESS,
-    abi: ACHIEVEMENT_ABI,
-    functionName: 'totalAchievements',
-  });
+  const usePlayerAchievements = () => {
+    return useReadContract({
+      abi: achievementAbi,
+      address: contractAddress,
+      functionName: 'getPlayerAchievements',
+      args: addressToUse ? [addressToUse] : undefined,
+      query: { enabled: !!addressToUse }
+    });
+  };
 
-  // 2. Prepare multicall for all achievements metadata
-  const achievementRequests = useMemo(() => {
-    if (!totalAchievements) return [];
-    const requests = [];
-    for (let i = 1n; i <= (totalAchievements as bigint); i++) {
-      requests.push({
-        address: ACHIEVEMENT_ADDRESS as Address,
-        abi: ACHIEVEMENT_ABI,
-        functionName: 'achievements',
-        args: [i],
-      });
-    }
-    return requests;
-  }, [totalAchievements]);
+  const useProgress = (achievementId: bigint) => {
+    return useReadContract({
+      abi: achievementAbi,
+      address: contractAddress,
+      functionName: 'getProgress',
+      args: addressToUse && achievementId ? [addressToUse, achievementId] : undefined,
+      query: { enabled: !!addressToUse && !!achievementId }
+    });
+  };
 
-  const { data: allAchievementsData, isLoading: isLoadingMetadata } = useReadContracts({
-    contracts: achievementRequests,
-    query: {
-      enabled: achievementRequests.length > 0,
-    }
-  });
-
-  // 3. Get all player achievements progress/unlock status
-  const { data: playerAchievementsData, refetch: refetchPlayerAchievements, isLoading: isLoadingPlayer } = useReadContract({
-    address: ACHIEVEMENT_ADDRESS,
-    abi: ACHIEVEMENT_ABI,
+  // For ProfilePage compatibility (pre-computed map if playerAddress provided)
+  const { data: achievementIds } = useReadContract({
+    abi: achievementAbi,
+    address: contractAddress,
     functionName: 'getPlayerAchievements',
-    args: targetAddress ? [targetAddress] : undefined,
-    query: {
-      enabled: !!targetAddress,
-    }
-  });
-
-  const achievements = useMemo(() => {
-    if (!allAchievementsData) return [];
-    return allAchievementsData
-      .filter(res => res.status === 'success')
-      .map((res) => {
-        const [id, name, description, category, tier, xpReward, tokenReward, isActive, unlockedCount] = res.result as unknown as [bigint, string, string, string, number, bigint, bigint, boolean, bigint];
-        return {
-          achievementId: id,
-          name,
-          description,
-          category,
-          tier,
-          xpReward,
-          tokenReward,
-          isActive,
-          unlockedCount
-        } as Achievement;
-      });
-  }, [allAchievementsData]);
+    args: playerAddress ? [playerAddress] : undefined,
+    query: { enabled: !!playerAddress }
+  }) as { data: readonly bigint[] | undefined };
 
   const playerAchievements = useMemo(() => {
-    if (!playerAchievementsData) return new Map<bigint, PlayerAchievement>();
-    const map = new Map<bigint, PlayerAchievement>();
-    (playerAchievementsData as PlayerAchievement[]).forEach(pa => {
-      map.set(pa.achievementId, pa);
-    });
+    const map = new Map();
+    if (achievementIds) {
+      achievementIds.forEach(id => {
+        map.set(id.toString(), {
+          achievementId: id,
+          isUnlocked: true,
+          unlockedAt: new Date() // Placeholder
+        });
+      });
+    }
     return map;
-  }, [playerAchievementsData]);
+  }, [achievementIds]);
 
   return {
-    achievements,
-    playerAchievements,
-    totalAchievements: totalAchievements as bigint | undefined,
-    isLoading: isLoadingMetadata || isLoadingPlayer,
-    refetchPlayerAchievements,
+    usePlayerAchievements,
+    useProgress,
+    playerAchievements
   };
-}
-
-export function useAchievementNotifications() {
-  const { address } = useAccount();
-  
-  useWatchContractEvent({
-    address: ACHIEVEMENT_ADDRESS,
-    abi: ACHIEVEMENT_ABI,
-    eventName: 'AchievementUnlocked',
-    onLogs(logs) {
-      logs.forEach((log) => {
-        const { player, achievementId, xpReward, tokenReward } = log.args as { player: Address, achievementId: bigint, xpReward: bigint, tokenReward: bigint };
-        if (player === address) {
-          showAchievementToast(
-            `Secret Achievement #${achievementId}`, 
-            xpReward.toString(), 
-            formatUnits(tokenReward, 18)
-          );
-        }
-      });
-    },
-  });
 }

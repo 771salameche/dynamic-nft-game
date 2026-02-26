@@ -1,178 +1,105 @@
 'use client';
 
-import { useAchievements, useAchievementNotifications } from '@/hooks/useAchievements';
-import { AchievementCard } from '@/components/achievements/AchievementCard';
-import { ConnectButton } from '@/components/web3/ConnectButton';
 import { useAccount } from 'wagmi';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Star, Target, Search, Loader2 } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useAchievements } from '@/hooks/useAchievements';
+import { Trophy, Medal, Star, Target } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-const CATEGORIES = ["All", "Combat", "Breeding", "Social", "Collection", "Progression"];
+const ALL_ACHIEVEMENTS = [
+  { id: 1n, name: 'First Blood', desc: 'Secure your first victory in battle.', icon: <Target className="w-8 h-8 text-primary" /> },
+  { id: 2n, name: 'Veteran Staker', desc: 'Stake a hero for 7 consecutive days.', icon: <Star className="w-8 h-8 text-secondary" /> },
+  { id: 3n, name: 'Master Breeder', desc: 'Successfully breed a new generation hero.', icon: <Trophy className="w-8 h-8 text-yellow-500" /> },
+  { id: 4n, name: 'Legendary Status', desc: 'Reach level 50 with any character.', icon: <Medal className="w-8 h-8 text-purple-500" /> },
+];
+
+function AchievementCard({ achievement, completed }: { achievement: typeof ALL_ACHIEVEMENTS[0], completed: boolean }) {
+  const { useProgress } = useAchievements();
+  const { data: progressData } = useProgress(achievement.id);
+
+  const [current, required, isCompletedFromContract] = progressData || [0n, 1n, false];
+  const progressPercent = Math.min((Number(current) / Number(required)) * 100, 100);
+
+  const actuallyCompleted = completed || isCompletedFromContract;
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      className={`relative overflow-hidden rounded-2xl border ${actuallyCompleted ? 'border-primary bg-primary/5' : 'border-border bg-card opacity-70'
+        } p-6 flex flex-col items-center text-center transition-all`}
+    >
+      {actuallyCompleted && (
+        <div className="absolute top-0 right-0 p-2 opacity-20">
+          <Target className="w-16 h-16 text-primary" />
+        </div>
+      )}
+
+      <div className={`mb-4 p-4 rounded-full ${actuallyCompleted ? 'bg-primary/20' : 'bg-secondary/10 grayscale'}`}>
+        {achievement.icon}
+      </div>
+
+      <h3 className="text-xl font-bold mb-2">{achievement.name}</h3>
+      <p className="text-sm text-muted-foreground mb-6 h-10">{achievement.desc}</p>
+
+      <div className="w-full mt-auto">
+        <div className="flex justify-between text-xs font-bold mb-1">
+          <span>PROGRESS</span>
+          <span>{actuallyCompleted ? 'COMPLETE' : `${current.toString()} / ${required.toString()}`}</span>
+        </div>
+        <div className="h-2 w-full bg-secondary/20 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full ${actuallyCompleted ? 'bg-primary' : 'bg-muted-foreground'}`}
+            style={{ width: `${actuallyCompleted ? 100 : progressPercent}%` }}
+          />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function AchievementsPage() {
   const { isConnected } = useAccount();
-  const { achievements, playerAchievements, isLoading } = useAchievements();
-  useAchievementNotifications();
-
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const stats = useMemo(() => {
-    const total = achievements.length;
-    const unlocked = Array.from(playerAchievements.values()).filter(pa => pa.isUnlocked).length;
-    const percentage = total > 0 ? Math.round((unlocked / total) * 100) : 0;
-    return { total, unlocked, percentage };
-  }, [achievements, playerAchievements]);
-
-  const filteredAchievements = useMemo(() => {
-    return achievements.filter(a => {
-      const matchesCategory = selectedCategory === "All" || a.category === selectedCategory;
-      const matchesSearch = a.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           a.description.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesCategory && matchesSearch;
-    });
-  }, [achievements, selectedCategory, searchTerm]);
+  const { usePlayerAchievements } = useAchievements();
+  const { data: completedIds } = usePlayerAchievements();
 
   if (!isConnected) {
     return (
-      <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center min-h-[70vh]">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-md"
-        >
-          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 text-primary">
-            <Trophy className="w-10 h-10" />
-          </div>
-          <h1 className="text-4xl font-extrabold mb-4 uppercase tracking-tighter text-white">Honor Hall</h1>
-          <p className="text-slate-400 mb-8 text-lg">
-            Connect your wallet to track your progress and claim your rewards.
-          </p>
-          <ConnectButton />
-        </motion.div>
+      <div className="container mx-auto px-4 py-32 text-center">
+        <h1 className="text-4xl font-bold mb-4">Achievement Library</h1>
+        <p className="text-xl text-muted-foreground">Connect your wallet to track your progress.</p>
       </div>
     );
   }
 
+  const completedSet = new Set((completedIds as readonly bigint[])?.map((id: bigint) => Number(id)) || []);
+
+  const unlockedCount = completedSet.size;
+  const totalCount = ALL_ACHIEVEMENTS.length;
+
   return (
-    <div className="container mx-auto px-4 py-12 space-y-12">
-      <header className="flex flex-col md:flex-row justify-between items-end gap-6">
-        <div>
-          <h1 className="text-5xl font-black tracking-tighter uppercase mb-2 text-white">Achievements</h1>
-          <p className="text-slate-500 font-medium">Earn experience and tokens by completing challenges.</p>
-        </div>
-        <ConnectButton />
-      </header>
+    <div className="container mx-auto px-4 py-12 max-w-7xl">
+      <div className="text-center mb-16">
+        <h1 className="text-4xl md:text-5xl font-black mb-4">Hall of Feats</h1>
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+          Unlock soulbound badges by completing epic quests across the ecosystem.
+        </p>
 
-      {/* Stats Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatSummaryCard
-          label="Total Unlocked"
-          value={`${stats.unlocked} / ${stats.total}`}
-          icon={<Trophy className="w-5 h-5 text-yellow-500" />}
-          progress={stats.percentage}
-        />
-        <StatSummaryCard
-          label="Completion"
-          value={`${stats.percentage}%`}
-          icon={<Target className="w-5 h-5 text-purple-500" />}
-          progress={stats.percentage}
-        />
-        <StatSummaryCard
-          label="Active Challenges"
-          value={achievements.filter(a => a.isActive).length.toString()}
-          icon={<Star className="w-5 h-5 text-emerald-500" />}
-        />
+        <div className="inline-flex items-center gap-4 bg-card border border-border px-6 py-4 rounded-full shadow-sm">
+          <Trophy className="w-6 h-6 text-yellow-500" />
+          <span className="font-bold text-lg">Completion Rate:</span>
+          <div className="text-2xl font-black text-primary">
+            {unlockedCount} / {totalCount}
+          </div>
+        </div>
       </div>
 
-      {/* Filters & Search */}
-      <div className="flex flex-col md:flex-row gap-6 items-center justify-between bg-slate-900/50 p-6 rounded-3xl border border-slate-800">
-        <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                selectedCategory === cat 
-                  ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40" 
-                  : "bg-slate-800 text-slate-400 hover:text-white"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-        <div className="relative w-full md:w-64">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search achievements..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-3 pl-10 pr-4 outline-none focus:ring-2 focus:ring-purple-500/50 text-sm text-white"
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {ALL_ACHIEVEMENTS.map((achievement) => (
+          <AchievementCard
+            key={Number(achievement.id)}
+            achievement={achievement}
+            completed={completedSet.has(Number(achievement.id))}
           />
-        </div>
-      </div>
-
-      {/* Achievements Grid */}
-      {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-12 h-12 text-purple-500 animate-spin mb-4" />
-          <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">Synchronizing Hall of Fame...</p>
-        </div>
-      ) : filteredAchievements.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <AnimatePresence mode="popLayout">
-            {filteredAchievements.map((achievement) => (
-              <motion.div
-                key={achievement.achievementId.toString()}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.2 }}
-              >
-                <AchievementCard
-                  achievement={achievement}
-                  playerProgress={playerAchievements.get(achievement.achievementId)}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      ) : (
-        <div className="py-20 text-center border-2 border-dashed border-slate-800 rounded-3xl">
-          <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">No achievements found in this category</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function StatSummaryCard({ label, value, icon, progress }: { label: string, value: string, icon: React.ReactNode, progress?: number }) {
-  return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 relative overflow-hidden group">
-      <div className="flex items-center gap-4 mb-4">
-        <div className="p-3 bg-slate-800 rounded-2xl group-hover:scale-110 transition-transform">
-          {icon}
-        </div>
-        <div>
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{label}</p>
-          <p className="text-2xl font-black text-white">{value}</p>
-        </div>
-      </div>
-      {progress !== undefined && (
-        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
-          />
-        </div>
-      )}
-      <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-        {icon}
+        ))}
       </div>
     </div>
   );

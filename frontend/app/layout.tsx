@@ -1,47 +1,32 @@
 import type { Metadata } from 'next';
-import { Web3Provider } from '@/components/web3/Web3Provider';
+import { Inter } from 'next/font/google';
 import './globals.css';
+import { Providers } from '@/components/Providers';
+import { Navigation } from '@/components/Navigation';
+import { Toaster } from 'react-hot-toast';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Dynamic NFT Game - Evolving Characters on Polygon',
-  description: 'Mint, evolve, and battle with dynamic NFT characters. Stake to earn rewards and breed powerful offspring.',
-  keywords: ['NFT', 'Polygon', 'Gaming', 'Web3', 'Blockchain', 'GameFi', 'Dynamic NFT'],
-  authors: [{ name: 'Nexus Protocol' }],
-  openGraph: {
-    title: 'Dynamic NFT Game',
-    description: 'Build your NFT army on Polygon. Mint, evolve, and battle with dynamic characters.',
-    url: 'https://dynamic-nft-game.example.com',
-    siteName: 'Dynamic NFT Game',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Dynamic NFT Game Preview',
-      },
-    ],
-    locale: 'en_US',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Dynamic NFT Game',
-    description: 'Build your NFT army on Polygon',
-    images: ['/og-image.png'],
-  },
+  title: 'Dynamic NFT Game',
+  description: 'An immersive gaming ecosystem on Polygon',
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    <html lang="en">
-      <body className="antialiased">
-        <Web3Provider>
-          {children}
-        </Web3Provider>
+    <html lang="en" className="dark">
+      <body className={`${inter.className} min-h-screen bg-background text-foreground antialiased flex flex-col`}>
+        <Providers>
+          <Navigation />
+          <main className="flex-1">
+            {children}
+          </main>
+          <Toaster position="bottom-right" />
+        </Providers>
       </body>
     </html>
   );

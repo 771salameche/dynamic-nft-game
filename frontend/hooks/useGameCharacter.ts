@@ -1,130 +1,80 @@
 'use client';
 
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount, useWatchContractEvent } from 'wagmi';
-import { GAME_CHARACTER_ADDRESS, GAME_CHARACTER_ABI } from '@/lib/contracts';
-import { toast } from 'react-hot-toast';
-import { useEffect, useState } from 'react';
-import { Address } from 'viem';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { parseEther, parseAbi } from 'viem';
 
-// ... (previous functions)
-
-export function useOwnedTokenIds(owner?: Address) {
-  const { address: connectedAddress } = useAccount();
-  const targetAddress = owner || connectedAddress;
-  const [tokenIds, setTokenIds] = useState<bigint[]>([]);
-
-  // Listen for Mint events to track IDs (simplified discovery)
-  useWatchContractEvent({
-    address: GAME_CHARACTER_ADDRESS,
-    abi: GAME_CHARACTER_ABI,
-    eventName: 'CharacterMinted',
-    onLogs(logs) {
-      logs.forEach((log) => {
-        const { owner: mintOwner, tokenId } = log.args as { owner: Address, tokenId: bigint };
-        if (mintOwner === targetAddress && !tokenIds.includes(tokenId)) {
-          setTokenIds(prev => [...prev, tokenId]);
-        }
-      });
-    },
-  });
-
-  // Also initial fetch logic could go here, or depend on manual refresh
-  // For now we'll assume the user discovers them as they interact or via balance
-  
-  return { tokenIds };
-}
+// ABI for GameCharacter
+export const gameCharacterAbi = parseAbi([
+  "function mintCharacter(uint8 classType) external payable",
+  "function getCharacterTraits(uint256 tokenId) external view returns (uint256 level, uint256 strength, uint256 agility, uint256 intelligence, uint8 classType)",
+  "function tokenURI(uint256 tokenId) external view returns (string memory)",
+  "function tokensOfOwner(address owner) external view returns (uint256[] memory)"
+]);
 
 export function useGameCharacter() {
-  const { writeContract, data: hash, error, isPending } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const { address } = useAccount();
+  const contractAddress = process.env.NEXT_PUBLIC_GAME_CHARACTER_ADDRESS as `0x${string}`;
 
-  // Mint character
-  const mintCharacter = async (characterClass: string) => {
-    try {
-      await writeContract({
-        address: GAME_CHARACTER_ADDRESS,
-        abi: GAME_CHARACTER_ABI,
-        functionName: 'mintCharacter',
-        args: [characterClass],
-      });
-    } catch (err: unknown) {
-      const error = err as Error;
-      toast.error(error.message || 'Failed to mint character');
-    }
+  const { writeContractAsync, isPending } = useWriteContract();
+
+  const mintCharacter = async (classType: number) => {
+    // Basic mint cost is 0.01 MATIC based on standard setup, adjust as needed or fetch dynamically
+    const mintCost = parseEther("0.01");
+    return writeContractAsync({
+      abi: gameCharacterAbi,
+      address: contractAddress,
+      functionName: 'mintCharacter',
+      args: [classType],
+      value: mintCost,
+      account: address
+    });
   };
 
-  // Gain experience
-  const gainExperience = async (tokenId: bigint, amount: number) => {
-    try {
-      await writeContract({
-        address: GAME_CHARACTER_ADDRESS,
-        abi: GAME_CHARACTER_ABI,
-        functionName: 'gainExperience',
-        args: [tokenId, amount],
-      });
-    } catch (err: unknown) {
-      const error = err as Error;
-      toast.error(error.message || 'Failed to gain experience');
-    }
+  const useOwnedCharacters = () => {
+    return useReadContract({
+      abi: gameCharacterAbi,
+      address: contractAddress,
+      functionName: 'tokensOfOwner',
+      args: address ? [address] : undefined,
+      query: {
+        enabled: !!address,
+      }
+    });
   };
-
-  useEffect(() => {
-    if (isSuccess) {
-      toast.success('Transaction successful!');
-    }
-    if (error) {
-      toast.error(error.message || 'Transaction failed');
-    }
-  }, [isSuccess, error]);
-
   return {
     mintCharacter,
-    gainExperience,
-    isLoading: isPending || isConfirming,
-    isSuccess,
-    hash,
-    error,
+    isMinting: isPending,
+    useOwnedCharacters,
   };
 }
 
 export function useCharacterTraits(tokenId: bigint) {
+  const contractAddress = process.env.NEXT_PUBLIC_GAME_CHARACTER_ADDRESS as `0x${string}`;
+
   return useReadContract({
-    address: GAME_CHARACTER_ADDRESS,
-    abi: GAME_CHARACTER_ABI,
+    abi: gameCharacterAbi,
+    address: contractAddress,
     functionName: 'getCharacterTraits',
-    args: [tokenId],
-    query: {
-      enabled: !!tokenId,
-    }
+    args: [tokenId]
   });
 }
 
-export function useOwnedCharacters(owner?: Address) {
-  const { address: connectedAddress } = useAccount();
-  const targetAddress = owner || connectedAddress;
+export function useOwnedTokenIds(address: `0x${string}` | undefined) {
+  const contractAddress = process.env.NEXT_PUBLIC_GAME_CHARACTER_ADDRESS as `0x${string}`;
 
-  // We can use useWatchContractEvent to listen for Transfer events
-  // or a more robust solution like a subgraph. 
-  // For a basic implementation, we'll rely on the balance and events.
-  
-  const { data: balance } = useReadContract({
-    address: GAME_CHARACTER_ADDRESS,
-    abi: GAME_CHARACTER_ABI,
-    functionName: 'balanceOf',
-    args: targetAddress ? [targetAddress] : undefined,
+  const { data: tokenIds, isLoading, error } = useReadContract({
+    abi: gameCharacterAbi,
+    address: contractAddress,
+    functionName: 'tokensOfOwner',
+    args: address ? [address] : undefined,
     query: {
-      enabled: !!targetAddress,
+      enabled: !!address,
     }
-  });
+  }) as { data: readonly bigint[] | undefined, isLoading: boolean, error: any };
 
-  // Note: To actually get all token IDs without ERC721Enumerable, 
-  // we would normally need to index events. 
-  // This is a simplified placeholder that would ideally be replaced 
-  // by a call to an indexer or a multicall if we knew the ID range.
-  
-  return { 
-    balance: balance as bigint | undefined,
-    tokenIds: [],
-    isLoading: !balance && !!targetAddress 
+  return {
+    tokenIds: tokenIds || [],
+    isLoading,
+    error
   };
 }
