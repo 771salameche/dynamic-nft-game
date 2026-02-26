@@ -1,168 +1,183 @@
 'use client';
 
-import { useStaking, useStakedCharacters, usePendingRewards } from '@/hooks/useStaking';
-import { useOwnedTokenIds } from '@/hooks/useGameCharacter';
-import { ConnectButton } from '@/components/web3/ConnectButton';
-import { StatCard } from '@/components/ui/StatCard';
-import { StakedCharacterCard } from '@/components/staking/StakedCharacterCard';
-import { CharacterCard } from '@/components/character/CharacterCard';
-import { StakingInfoPanel } from '@/components/staking/StakingInfoPanel';
-import { Button } from '@/components/ui/button';
-import { useAccount } from 'wagmi';
-import { formatUnits } from 'viem';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Loader2, Sparkles } from 'lucide-react';
-import { StakeInfo } from '@/types/game';
+import { useState } from 'react';
+import { useAccount, useWaitForTransactionReceipt } from 'wagmi';
+import { useGameCharacter } from '@/hooks/useGameCharacter';
+import { useStaking } from '@/hooks/useStaking';
+import { CharacterCard } from '@/components/CharacterCard';
+import { formatEther } from 'viem';
+import toast from 'react-hot-toast';
 
-export default function StakingPage() {
+function StakedCharacter({ tokenId }: { tokenId: bigint }) {
+  const { unstake, claimRewards, useCalculateRewards } = useStaking();
+  const { data: rewards } = useCalculateRewards(tokenId);
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
+
+  const { isLoading: isWaiting } = useWaitForTransactionReceipt({ hash: txHash });
+
+  const handleUnstake = async () => {
+    try {
+      const hash = await unstake(tokenId);
+      setTxHash(hash);
+      toast.success('Unstake transaction submitted!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to unstake.');
+    }
+  };
+
+  const handleClaim = async () => {
+    try {
+      const hash = await claimRewards(tokenId);
+      setTxHash(hash);
+      toast.success('Claim transaction submitted!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to claim rewards.');
+    }
+  };
+
+  return (
+    <div className="relative group">
+      <CharacterCard tokenId={tokenId} showLink={false} />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 rounded-xl gap-4">
+
+        <div className="text-center mb-2">
+          <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Pending Rewards</p>
+          <p className="text-2xl font-bold text-primary">
+            {rewards ? Number(formatEther(rewards)).toFixed(4) : '0.0000'} <span className="text-sm">🔥</span>
+          </p>
+        </div>
+
+        <div className="flex gap-2 w-full">
+          <button
+            onClick={handleClaim}
+            disabled={isWaiting || !rewards || rewards === 0n}
+            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground py-2 rounded font-medium disabled:opacity-50"
+          >
+            Claim
+          </button>
+          <button
+            onClick={handleUnstake}
+            disabled={isWaiting}
+            className="flex-1 bg-destructive/90 hover:bg-destructive text-destructive-foreground py-2 rounded font-medium disabled:opacity-50"
+          >
+            Unstake
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UnstakedCharacter({ tokenId }: { tokenId: bigint }) {
+  const { stake } = useStaking();
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
+
+  const { isLoading: isWaiting } = useWaitForTransactionReceipt({ hash: txHash });
+
+  const handleStake = async () => {
+    try {
+      const hash = await stake(tokenId);
+      setTxHash(hash);
+      toast.success('Stake transaction submitted!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to stake.');
+    }
+  };
+
+  return (
+    <div className="relative group">
+      <CharacterCard tokenId={tokenId} showLink={false} />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 rounded-xl">
+        <button
+          onClick={handleStake}
+          disabled={isWaiting}
+          className="w-full bg-secondary hover:bg-secondary/90 text-secondary-foreground py-3 rounded-lg font-bold disabled:opacity-50 transition-colors"
+        >
+          {isWaiting ? 'Staking...' : 'Stake Hero'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function StakingDashboard() {
   const { isConnected } = useAccount();
-  const { stake, unstake, claimRewards, isLoading: isActionPending } = useStaking();
-  const { data: stakes, isLoading: isLoadingStakes } = useStakedCharacters();
-  const { realTimeRewards: pendingRewards } = usePendingRewards();
-  const { tokenIds: ownedTokenIds } = useOwnedTokenIds();
+  const { useOwnedCharacters } = useGameCharacter();
+  const { useStakedTokens } = useStaking();
 
-  // Filter out characters that are already staked
-  const stakedTokenIds = stakes ? (stakes as StakeInfo[]).map(s => BigInt(s.tokenId)) : [];
-  const unstakedCharacters = ownedTokenIds.filter(id => !stakedTokenIds.includes(id));
+  const { data: ownedTokens } = useOwnedCharacters();
+  const { data: stakedTokens } = useStakedTokens();
 
   if (!isConnected) {
     return (
-      <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center min-h-[70vh]">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-md"
-        >
-          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 text-primary">
-            <Coins className="w-10 h-10" />
-          </div>
-          <h1 className="text-4xl font-extrabold mb-4 uppercase tracking-tighter">Staking Vault</h1>
-          <p className="text-muted-foreground mb-8 text-lg">
-            Connect your wallet to access the vault, stake your heroes and earn passive GAME rewards.
-          </p>
-          <ConnectButton />
-        </motion.div>
+      <div className="container mx-auto px-4 py-32 text-center">
+        <h1 className="text-4xl font-bold mb-4">Staking Dashboard</h1>
+        <p className="text-xl text-muted-foreground">Connect your wallet to manage your stakes and earn rewards.</p>
       </div>
     );
   }
 
-  return (
-    <div className="container mx-auto px-4 py-12 space-y-12">
-      <header className="flex flex-col md:flex-row justify-between items-end gap-6">
-        <div>
-          <h1 className="text-5xl font-black tracking-tighter uppercase mb-2">Staking Dashboard</h1>
-          <p className="text-slate-500 font-medium">Manage your staked heroes and harvest GAME rewards.</p>
-        </div>
-        <ConnectButton />
-      </header>
+  // Filter out the tokens that are actually staked, because tokensOfOwner might include them or not depending on staking implementation (usually staking transfers the NFT).
+  // Assuming the Staking contract uses transferFrom, useOwnedCharacters only shows unstaked ones.
+  // If it doesn't transfer, we would filter here.
+  const unstakedTokens = ownedTokens || [];
+  const currentlyStakedTokens = stakedTokens || [];
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard
-          label="Heroes Staked"
-          value={stakes?.length || 0}
-          icon="🔒"
-        />
-        <StatCard
-          label="Pending Rewards"
-          value={pendingRewards ? Number(formatUnits(pendingRewards, 18)).toFixed(4) : "0.0000"}
-          suffix="GAME"
-          icon="💎"
-        />
-        <StatCard
-          label="Reward Rate"
-          value="1.0"
-          suffix="GAME / h / lvl"
-          icon="📈"
-        />
+  return (
+    <div className="container mx-auto px-4 py-12 max-w-7xl">
+      <div className="mb-12">
+        <h1 className="text-4xl font-bold mb-2">Staking Barracks</h1>
+        <p className="text-xl text-muted-foreground">Stake your heroes to earn daily Game Tokens.</p>
       </div>
 
-      {/* Claim Section */}
-      <motion.div 
-        layout
-        className="p-8 bg-gradient-to-r from-purple-900/40 to-indigo-900/40 rounded-3xl border border-purple-500/30 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8"
-      >
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center">
-            <Sparkles className="w-8 h-8 text-yellow-400" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-black text-white uppercase tracking-tight">Total Rewards Available</h2>
-            <p className="text-purple-200 text-lg font-bold">
-              {pendingRewards ? formatUnits(pendingRewards, 18) : "0.00"} <span className="text-sm opacity-60">GAME</span>
-            </p>
-          </div>
-        </div>
-        
-        <Button
-          size="lg"
-          onClick={() => claimRewards()}
-          disabled={isActionPending || !pendingRewards || pendingRewards === 0n}
-          className="h-16 px-12 text-lg font-black uppercase tracking-widest shadow-xl bg-white text-purple-900 hover:bg-slate-200 transition-all"
-        >
-          {isActionPending ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Processing...
-            </>
-          ) : "Claim All Rewards"}
-        </Button>
-      </motion.div>
+      <div className="space-y-12">
 
-      {/* Staked Characters */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-black uppercase tracking-tighter">Staked Characters ({stakes?.length || 0})</h2>
-        </div>
-        
-        {isLoadingStakes ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="w-12 h-12 text-slate-700 animate-spin" />
+        <section>
+          <div className="flex items-center gap-3 mb-6 border-b border-border/50 pb-4">
+            <h2 className="text-2xl font-bold">Currently Staked</h2>
+            <span className="bg-primary/20 text-primary px-3 py-1 rounded-full text-sm font-bold">
+              {currentlyStakedTokens.length}
+            </span>
           </div>
-        ) : stakes && (stakes as StakeInfo[]).length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <AnimatePresence>
-              {(stakes as StakeInfo[]).map((stakeInfo) => (
-                <StakedCharacterCard
-                  key={stakeInfo.tokenId.toString()}
-                  stake={stakeInfo}
-                  onUnstake={unstake}
-                />
+
+          {currentlyStakedTokens.length === 0 ? (
+            <div className="text-center py-12 bg-card border border-border rounded-xl">
+              <p className="text-muted-foreground">You don&apos;t have any heroes staked currently.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {currentlyStakedTokens.map((tokenId) => (
+                <StakedCharacter key={tokenId.toString()} tokenId={tokenId} />
               ))}
-            </AnimatePresence>
-          </div>
-        ) : (
-          <div className="py-20 text-center border-2 border-dashed border-slate-800 rounded-3xl">
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">No characters currently staked</p>
-          </div>
-        )}
-      </section>
+            </div>
+          )}
+        </section>
 
-      {/* Available to Stake */}
-      <section className="space-y-6">
-        <h2 className="text-3xl font-black uppercase tracking-tighter">Available to Stake ({unstakedCharacters.length})</h2>
-        
-        {unstakedCharacters.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {unstakedCharacters.map((id) => (
-              <CharacterCard
-                key={id.toString()}
-                tokenId={id}
-                showActions
-                onStake={stake}
-              />
-            ))}
+        <section>
+          <div className="flex items-center gap-3 mb-6 border-b border-border/50 pb-4">
+            <h2 className="text-2xl font-bold">Available to Stake</h2>
+            <span className="bg-secondary/20 text-secondary px-3 py-1 rounded-full text-sm font-bold">
+              {unstakedTokens.length}
+            </span>
           </div>
-        ) : (
-          <div className="py-20 text-center border-2 border-dashed border-slate-800 rounded-3xl bg-slate-900/20">
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-sm">All your characters are working</p>
-            <p className="text-xs text-slate-600 mt-2">Mint more characters to increase your reward rate</p>
-          </div>
-        )}
-      </section>
 
-      {/* Mechanics Info */}
-      <StakingInfoPanel />
+          {unstakedTokens.length === 0 ? (
+            <div className="text-center py-12 bg-card border border-border rounded-xl">
+              <p className="text-muted-foreground">You don&apos;t have any available heroes to stake.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {unstakedTokens.map((tokenId) => (
+                <UnstakedCharacter key={tokenId.toString()} tokenId={tokenId} />
+              ))}
+            </div>
+          )}
+        </section>
+
+      </div>
     </div>
   );
 }

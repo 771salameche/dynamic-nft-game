@@ -1,168 +1,52 @@
 'use client';
 
-import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { BREEDING_ADDRESS, BREEDING_ABI, GAME_TOKEN_ADDRESS } from '@/lib/contracts';
-import { toast } from 'react-hot-toast';
-import { useEffect } from 'react';
-import { erc20Abi } from 'viem';
+import { useAccount, useReadContract, useWriteContract } from 'wagmi';
+
+export const breedingAbi = [
+  "function breed(uint256 parent1Id, uint256 parent2Id) external payable",
+  "function canBreed(uint256 parent1Id, uint256 parent2Id) external view returns (bool)",
+  "function getBreedingHistory(uint256 tokenId) external view returns (uint256[] memory)"
+] as const;
 
 export function useBreeding() {
-  const { writeContract, data: hash, error, isPending } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
+  const { address } = useAccount();
+  const contractAddress = process.env.NEXT_PUBLIC_CHARACTER_BREEDING_ADDRESS as `0x${string}`;
 
-  // 1. Breed characters
+  const { writeContractAsync, isPending: isBreedingTxPending } = useWriteContract();
+
   const breed = async (parent1Id: bigint, parent2Id: bigint) => {
-    try {
-      // Logic: 
-      // 1. Get breeding cost
-      // 2. Approve GAME tokens
-      // 3. Call breed
-      // For simplicity in hook, we trigger the sequence
-      
-      const breedingCost = 100n * 10n**18n; // Should fetch from contract normally
-
-      await writeContract({
-        address: GAME_TOKEN_ADDRESS,
-        abi: erc20Abi,
-        functionName: 'approve',
-        args: [BREEDING_ADDRESS, breedingCost],
-      });
-
-      await writeContract({
-        address: BREEDING_ADDRESS,
-        abi: BREEDING_ABI,
-        functionName: 'breed',
-        args: [parent1Id, parent2Id],
-      });
-    } catch (err: unknown) {
-      const error = err as Error;
-      toast.error(error.message || 'Failed to breed');
-    }
+    return writeContractAsync({
+      abi: breedingAbi,
+      address: contractAddress,
+      functionName: 'breed',
+      args: [parent1Id, parent2Id]
+    });
   };
 
-  // 2. Fuse characters
-  const fuse = async (token1Id: bigint, token2Id: bigint) => {
-    try {
-      const fusionCost = 500n * 10n**18n; // Should fetch from contract normally
-
-      await writeContract({
-        address: GAME_TOKEN_ADDRESS,
-        abi: erc20Abi,
-        functionName: 'approve',
-        args: [BREEDING_ADDRESS, fusionCost],
-      });
-
-      await writeContract({
-        address: BREEDING_ADDRESS,
-        abi: BREEDING_ABI,
-        functionName: 'fuse',
-        args: [token1Id, token2Id],
-      });
-    } catch (err: unknown) {
-      const error = err as Error;
-      toast.error(error.message || 'Failed to fuse');
-    }
+  const useCanBreed = (parent1Id: bigint, parent2Id: bigint) => {
+    return useReadContract({
+      abi: breedingAbi,
+      address: contractAddress,
+      functionName: 'canBreed',
+      args: [parent1Id, parent2Id],
+      query: { enabled: !!parent1Id && !!parent2Id }
+    });
   };
 
-  useEffect(() => {
-    if (isSuccess) toast.success('Operation successful!');
-    if (error) toast.error(error.message || 'Transaction failed');
-  }, [isSuccess, error]);
+  const useBreedingHistory = (tokenId: bigint) => {
+    return useReadContract({
+      abi: breedingAbi,
+      address: contractAddress,
+      functionName: 'getBreedingHistory',
+      args: [tokenId],
+      query: { enabled: !!tokenId }
+    });
+  };
 
   return {
     breed,
-    fuse,
-    isLoading: isPending || isConfirming,
-    hash,
+    isBreedingTxPending,
+    useCanBreed,
+    useBreedingHistory
   };
-}
-
-// 3. Check breeding eligibility
-export function useCanBreed(tokenId: bigint) {
-  return useReadContract({
-    address: BREEDING_ADDRESS,
-    abi: BREEDING_ABI,
-    functionName: 'canBreed',
-    args: [tokenId],
-    query: {
-        enabled: !!tokenId,
-    }
-  });
-}
-
-// 4. Get breeding history
-export function useBreedingHistory(tokenId: bigint) {
-  return useReadContract({
-    address: BREEDING_ADDRESS,
-    abi: BREEDING_ABI,
-    functionName: 'getBreedingHistory',
-    args: [tokenId],
-    query: {
-        enabled: !!tokenId,
-    }
-  });
-}
-
-// 5. Check fusion eligibility
-
-export function useCanFuse(token1: bigint, token2: bigint) {
-
-  return useReadContract({
-
-    address: BREEDING_ADDRESS,
-
-    abi: BREEDING_ABI,
-
-    functionName: 'canFuse',
-
-    args: [token1, token2],
-
-    query: {
-
-        enabled: !!token1 && !!token2,
-
-    }
-
-  });
-
-}
-
-
-
-// 6. Get costs
-
-export function useBreedingCosts() {
-
-  const { data: breedingCost } = useReadContract({
-
-    address: BREEDING_ADDRESS,
-
-    abi: BREEDING_ABI,
-
-    functionName: 'breedingCost',
-
-  });
-
-
-
-  const { data: fusionCost } = useReadContract({
-
-    address: BREEDING_ADDRESS,
-
-    abi: BREEDING_ABI,
-
-    functionName: 'fusionCost',
-
-  });
-
-
-
-  return { 
-
-    breedingCost: (breedingCost as bigint) || 100n * 10n**18n,
-
-    fusionCost: (fusionCost as bigint) || 500n * 10n**18n 
-
-  };
-
 }
