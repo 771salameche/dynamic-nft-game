@@ -208,6 +208,10 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     uint256 public updateInterval;
     uint256 public passiveXPAmount;
     mapping(uint256 => bool) public isAutoXPEnabled;
+    /// @dev Compact registry of tokens that have auto-XP enabled.
+    uint256[] private _autoXpTokens;
+    /// @dev Index of a tokenId in _autoXpTokens (index + 1, 0 means not present).
+    mapping(uint256 => uint256) private _autoXpIndex;
     ICharacterStaking public stakingContract;
     IAchievementTrigger public achievementTrigger;
 
@@ -738,20 +742,35 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     }
 
     /// @dev Distributes passive XP to eligible characters.
+    ///      Iterates only over tokens that have auto-XP explicitly enabled.
     function _distributePassiveXP() internal {
-        uint256 lastTokenId = _tokenIdCounter.current() - 1;
-        for (uint256 i = 1; i <= lastTokenId; i++) {
-            if (_exists(i) && isAutoXPEnabled[i] && _isStaked(i)) {
-                if (_characterTraits[i].level < _MAX_LEVEL) {
-                    uint256 amount = passiveXPAmount;
-                    // Bonus based on level
-                    amount = amount.add(_characterTraits[i].level.div(10));
-                    
-                    _characterTraits[i].experience = _characterTraits[i].experience.add(amount);
-                    emit PassiveXPGranted(i, amount);
-                    _checkLevelUp(i);
-                }
+        uint256 length = _autoXpTokens.length;
+        for (uint256 i = 0; i < length; i++) {
+            uint256 tokenId = _autoXpTokens[i];
+
+            if (!_exists(tokenId)) {
+                continue;
             }
+
+            if (!isAutoXPEnabled[tokenId]) {
+                continue;
+            }
+
+            if (!_isStaked(tokenId)) {
+                continue;
+            }
+
+            if (_characterTraits[tokenId].level >= _MAX_LEVEL) {
+                continue;
+            }
+
+            uint256 amount = passiveXPAmount;
+            // Bonus based on level
+            amount = amount.add(_characterTraits[tokenId].level.div(10));
+
+            _characterTraits[tokenId].experience = _characterTraits[tokenId].experience.add(amount);
+            emit PassiveXPGranted(tokenId, amount);
+            _checkLevelUp(tokenId);
         }
     }
 
@@ -766,8 +785,46 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         if (ownerOf(tokenId) != msg.sender) {
             revert NotCharacterOwner(tokenId, msg.sender);
         }
-        isAutoXPEnabled[tokenId] = true;
-        emit AutoXPEnabled(tokenId);
+
+        if (!isAutoXPEnabled[tokenId]) {
+            isAutoXPEnabled[tokenId] = true;
+
+            // Add to registry if not already present
+            if (_autoXpIndex[tokenId] == 0) {
+                _autoXpTokens.push(tokenId);
+                _autoXpIndex[tokenId] = _autoXpTokens.length; // index + 1
+            }
+
+            emit AutoXPEnabled(tokenId);
+        }
+    }
+
+    /// @dev Disables auto-XP for a character and removes it from the registry.
+    function disableAutoXP(uint256 tokenId) external {
+        if (ownerOf(tokenId) != msg.sender) {
+            revert NotCharacterOwner(tokenId, msg.sender);
+        }
+
+        if (!isAutoXPEnabled[tokenId]) {
+            return;
+        }
+
+        isAutoXPEnabled[tokenId] = false;
+
+        uint256 indexPlusOne = _autoXpIndex[tokenId];
+        if (indexPlusOne != 0) {
+            uint256 index = indexPlusOne - 1;
+            uint256 lastIndex = _autoXpTokens.length - 1;
+
+            if (index != lastIndex) {
+                uint256 lastTokenId = _autoXpTokens[lastIndex];
+                _autoXpTokens[index] = lastTokenId;
+                _autoXpIndex[lastTokenId] = index + 1;
+            }
+
+            _autoXpTokens.pop();
+            delete _autoXpIndex[tokenId];
+        }
     }
 
     /// @dev Sets the update interval for passive XP.
@@ -891,5 +948,5 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     ///////////////////////////////////////////////////////////////*/
 
     /// @dev Storage gap to ensure compatibility during upgrades.
-    uint256[27] private __gap; // Reduced to account for artGeneratorContract and mint config variables
+    uint256[25] private __gap; // Reduced to account for artGeneratorContract, mint config and auto-XP registry variables
 }
