@@ -6,13 +6,28 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 const SMART_QUEST_ENGINE_ABI = parseAbi([
-    'function getActiveQuest(address player) view returns (tuple(uint256 questId, address player, string description, string aiExplanation, uint8 questType, uint8 difficulty, uint256 xpReward, uint256 tokenReward, uint256 createdAt, uint256 expiresAt, bool completed, bool claimed))',
+    'function getActiveQuest(address player) view',
     'function completeQuest(uint256 questId)',
     'function requestQuest()',
 ]);
 
 const QUEST_TYPES = ['Breeding', 'Staking', 'Leveling', 'Social', 'Collection'];
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard', 'Expert'];
+
+type ActiveQuestResult = {
+    questId: bigint;
+    player: `0x${string}`;
+    description: string;
+    aiExplanation: string;
+    questType: number;
+    difficulty: number;
+    xpReward: bigint;
+    tokenReward: bigint;
+    createdAt: bigint;
+    expiresAt: bigint;
+    completed: boolean;
+    claimed: boolean;
+};
 
 export function ActiveQuest() {
     const { address } = useAccount();
@@ -29,16 +44,18 @@ export function ActiveQuest() {
         },
     });
 
+    const typedQuest = quest as ActiveQuestResult | undefined;
+
     // Complete quest mutation
     const { writeContract: completeQuest, isPending: isCompleting } = useWriteContract();
 
     // Calculate time remaining
     useEffect(() => {
-        if (!quest) return;
+        if (!typedQuest) return;
 
         const interval = setInterval(() => {
             const now = Math.floor(Date.now() / 1000);
-            const expiresAt = Number(quest.expiresAt);
+            const expiresAt = Number(typedQuest.expiresAt);
             const remaining = expiresAt - now;
 
             if (remaining <= 0) {
@@ -53,16 +70,16 @@ export function ActiveQuest() {
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [quest]);
+    }, [typedQuest]);
 
     const handleCompleteQuest = () => {
-        if (!quest) return;
+        if (!typedQuest) return;
 
         completeQuest({
             address: process.env.NEXT_PUBLIC_SMART_QUEST_ENGINE_ADDRESS as `0x${string}`,
             abi: SMART_QUEST_ENGINE_ABI,
             functionName: 'completeQuest',
-            args: [quest.questId],
+            args: [typedQuest.questId],
         });
     };
 
@@ -77,18 +94,19 @@ export function ActiveQuest() {
     // Handle quest as result of getActiveQuest
     // Viem returns tuple as array or object depending on ABI
     // Usually with parseAbi and named returns it's an object
-    if (!quest || (quest && quest.description === "")) {
+    if (!typedQuest || typedQuest.description === '') {
         return <RequestQuestButton />;
     }
 
-    const questType = QUEST_TYPES[quest.questType];
-    const difficulty = DIFFICULTIES[quest.difficulty];
-    const difficultyColor = {
+    const questType = QUEST_TYPES[typedQuest.questType];
+    const difficulty = DIFFICULTIES[typedQuest.difficulty];
+    const difficultyColors: Record<string, string> = {
         Easy: 'text-green-500',
         Medium: 'text-yellow-500',
         Hard: 'text-orange-500',
         Expert: 'text-red-500',
-    }[difficulty as keyof typeof difficultyColor] || 'text-gray-400';
+    };
+    const difficultyColor = difficultyColors[difficulty] ?? 'text-gray-400';
 
     return (
         <motion.div
@@ -107,7 +125,7 @@ export function ActiveQuest() {
                             {difficulty}
                         </span>
                     </div>
-                    <h3 className="text-xl font-bold text-white mb-1">{quest.description}</h3>
+                    <h3 className="text-xl font-bold text-white mb-1">{typedQuest.description}</h3>
                 </div>
 
                 {/* Time remaining */}
@@ -121,7 +139,7 @@ export function ActiveQuest() {
             <div className="mb-6 p-4 bg-black/40 rounded-lg border-l-4 border-purple-500">
                 <p className="text-sm text-gray-300 flex items-start gap-3 leading-relaxed">
                     <span className="text-xl bg-purple-500/20 p-1 rounded leading-none">🤖</span>
-                    <span className="italic">"{quest.aiExplanation}"</span>
+                    <span className="italic">"{typedQuest.aiExplanation}"</span>
                 </p>
             </div>
 
@@ -129,18 +147,18 @@ export function ActiveQuest() {
             <div className="flex gap-4 mb-6">
                 <div className="flex-1 bg-black/30 p-4 rounded-lg text-center border border-white/5">
                     <p className="text-xs text-gray-400 uppercase mb-1">XP Reward</p>
-                    <p className="text-2xl font-bold text-yellow-400">+{quest.xpReward.toString()}</p>
+                    <p className="text-2xl font-bold text-yellow-400">+{typedQuest.xpReward.toString()}</p>
                 </div>
                 <div className="flex-1 bg-black/30 p-4 rounded-lg text-center border border-white/5">
                     <p className="text-xs text-gray-400 uppercase mb-1">Token Reward</p>
                     <p className="text-2xl font-bold text-green-400">
-                        {formatEther(quest.tokenReward)} GAME
+                        {formatEther(typedQuest.tokenReward)} GAME
                     </p>
                 </div>
             </div>
 
             {/* Action button */}
-            {!quest.completed && (
+            {!typedQuest.completed && (
                 <button
                     onClick={handleCompleteQuest}
                     disabled={isCompleting}
@@ -158,7 +176,7 @@ export function ActiveQuest() {
                 </button>
             )}
 
-            {quest.completed && (
+            {typedQuest.completed && (
                 <div className="w-full py-4 bg-green-500/20 text-green-400 font-bold rounded-xl text-center border border-green-500/30">
                     <span className="flex items-center justify-center gap-2">
                         <span>✅</span> Quest Completed!

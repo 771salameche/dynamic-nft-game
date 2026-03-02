@@ -26,7 +26,7 @@ export function CharacterSelectionModal({ onSelect, excludeId, title }: Characte
   const [isOpen, setIsOpen] = useState(false);
 
   // Filter tokenIds based on exclusion and search (search is dummy here as we don't have all names/classes yet)
-  const filteredIds = tokenIds.filter(id => id !== excludeId);
+  const filteredIds = tokenIds.filter((id: bigint) => id !== excludeId);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -55,7 +55,7 @@ export function CharacterSelectionModal({ onSelect, excludeId, title }: Characte
         <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {filteredIds.length > 0 ? (
-              filteredIds.map((id) => (
+              filteredIds.map((id: bigint) => (
                 <CharacterGridItem 
                   key={id.toString()} 
                   tokenId={id} 

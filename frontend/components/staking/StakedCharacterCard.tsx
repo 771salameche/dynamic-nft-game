@@ -1,7 +1,7 @@
 'use client';
 
 import { useCharacterTraits } from '@/hooks/useGameCharacter';
-import { useCalculateRewards, useCurrentTime } from '@/hooks/useStaking';
+import { useStaking } from '@/hooks/useStaking';
 import { CharacterSprite } from '../character/CharacterSprite';
 import { ProgressBar } from '../character/StatBar';
 import { Button } from '../ui/button';
@@ -17,8 +17,9 @@ interface StakedCharacterCardProps {
 
 export function StakedCharacterCard({ stake, onUnstake }: StakedCharacterCardProps) {
   const { data: traits } = useCharacterTraits(stake.tokenId);
-  const { data: rewards } = useCalculateRewards(stake);
-  const now = useCurrentTime();
+  const { useCalculateRewards } = useStaking();
+  const { data: rewards } = useCalculateRewards(stake.tokenId);
+  const now = Math.floor(Date.now() / 1000);
   
   // Simulated milestone (e.g., 30 days for a level up or bonus)
   const MILESTONE = 30 * 24 * 60 * 60; // 30 days in seconds
