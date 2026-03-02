@@ -1,13 +1,15 @@
 // Shared ABI definitions for frontend (viem/wagmi) and backend (ethers).
 // Centralizes contract interfaces to avoid drift between layers.
 
+import { parseAbi } from 'viem';
+
 // GameCharacter
-export const GameCharacterAbiViem = [
+export const GameCharacterAbiViem = parseAbi([
   // Public mint for players
   'function mintCharacter(uint8 classType) external payable',
   // Traits accessor – return type omitted to avoid abitype tuple parsing issues
   'function getCharacterTraits(uint256 tokenId) external view',
-] as const;
+]);
 
 export const GameCharacterAbiEthers = [
   // Events
@@ -29,14 +31,14 @@ export const ArtGeneratorAbiEthers = [
 ] as const;
 
 // SmartQuestEngine
-export const SmartQuestEngineAbiViem = [
+export const SmartQuestEngineAbiViem = parseAbi([
   // Return type omitted to avoid tuple parsing issues; frontend casts result.
   'function getActiveQuest(address player) view',
   'function getQuestHistory(address player) view returns (uint256[])',
   'function quests(uint256 questId) view',
   'function requestQuest() external',
   'function completeQuest(uint256 questId) external',
-] as const;
+]);
 
 export const SmartQuestEngineAbiEthers = [
   'event QuestRequested(address indexed player, uint256 timestamp)',
@@ -51,24 +53,24 @@ export const SmartQuestEngineAbiEthers = [
 ] as const;
 
 // CharacterStaking
-export const CharacterStakingAbiViem = [
+export const CharacterStakingAbiViem = parseAbi([
   'function stake(uint256 tokenId) external',
   'function unstake(uint256 tokenId) external',
   'function claimRewards(uint256 tokenId) external',
   'function calculateRewards(address account, uint256 tokenId) external view returns (uint256)',
   'function getStakedTokens(address account) external view returns (uint256[] memory)',
-] as const;
+]);
 
 // CharacterBreeding
-export const CharacterBreedingAbiViem = [
+export const CharacterBreedingAbiViem = parseAbi([
   'function breed(uint256 parent1Id, uint256 parent2Id) external payable',
   'function canBreed(uint256 parent1Id, uint256 parent2Id) external view returns (bool)',
   'function getBreedingHistory(uint256 tokenId) external view returns (uint256[] memory)',
-] as const;
+]);
 
 // AchievementTracker
-export const AchievementTrackerAbiViem = [
+export const AchievementTrackerAbiViem = parseAbi([
   'function getPlayerAchievements(address player) external view returns (uint256[] memory)',
   'function getProgress(address player, uint256 achievementId) external view returns (uint256 current, uint256 required, bool completed)',
-] as const;
+]);
 
