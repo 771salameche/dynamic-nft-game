@@ -6,7 +6,12 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 interface IGameCharacter {
     function ownerOf(uint256 tokenId) external view returns (address);
-    function setArtMetadata(uint256 tokenId, string calldata imageURI, string calldata prompt) external;
+    function setArtMetadata(
+        uint256 tokenId,
+        string calldata metadataURI,
+        string calldata imageURI,
+        string calldata prompt
+    ) external;
 }
 
 /**
@@ -47,7 +52,7 @@ contract ArtGenerator is Ownable, ReentrancyGuard {
     ///////////////////////////////////////////////////////////////*/
 
     event ArtRequested(uint256 indexed tokenId, address requester, uint256 timestamp);
-    event ArtGenerated(uint256 indexed tokenId, string imageURI, string prompt);
+    event ArtGenerated(uint256 indexed tokenId, string metadataURI, string imageURI, string prompt);
     event FulfillerUpdated(address indexed oldFulfiller, address indexed newFulfiller);
 
     /*///////////////////////////////////////////////////////////////
@@ -105,11 +110,13 @@ contract ArtGenerator is Ownable, ReentrancyGuard {
     /**
      * @dev Fulfills an art generation request.
      * @param tokenId The unique identifier of the character.
-     * @param imageURI The IPFS URI of the generated art.
+     * @param metadataURI The IPFS CID of the generated metadata JSON.
+     * @param imageURI The IPFS CID of the generated art image.
      * @param prompt The AI prompt used for generation.
      */
     function fulfillArt(
         uint256 tokenId,
+        string calldata metadataURI,
         string calldata imageURI,
         string calldata prompt
     ) external nonReentrant {
@@ -126,9 +133,14 @@ contract ArtGenerator is Ownable, ReentrancyGuard {
         artRequests[tokenId].fulfilled = true;
         artGenerated[tokenId] = true;
 
-        IGameCharacter(gameCharacterContract).setArtMetadata(tokenId, imageURI, prompt);
+        IGameCharacter(gameCharacterContract).setArtMetadata(
+            tokenId,
+            metadataURI,
+            imageURI,
+            prompt
+        );
 
-        emit ArtGenerated(tokenId, imageURI, prompt);
+        emit ArtGenerated(tokenId, metadataURI, imageURI, prompt);
     }
 
     /**

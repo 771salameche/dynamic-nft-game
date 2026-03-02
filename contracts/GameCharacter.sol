@@ -92,8 +92,11 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     }
 
     /// @dev Represents AI-generated art metadata for a character.
+    /// @notice `metadataURI` is the IPFS CID of the JSON metadata.
+    ///         The JSON metadata's `image` field points to the actual image hash.
     struct ArtMetadata {
-        string imageURI;       // IPFS hash of AI-generated image (e.g., "ipfs://Qm...")
+        string metadataURI;    // IPFS hash of metadata JSON (e.g., "Qm...")
+        string imageURI;       // IPFS hash of AI-generated image (optional, for convenience)
         uint256 generatedAt;   // Timestamp when art was generated
         bool isGenerated;      // Art generation status
         string aiPrompt;       // AI prompt used (for transparency)
@@ -160,7 +163,10 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     event AutoXPEnabled(uint256 indexed tokenId);
 
     /// @dev Emitted when AI art metadata is set for a character.
-    event ArtMetadataSet(uint256 indexed tokenId, string imageURI, string prompt);
+    /// @param tokenId The character id.
+    /// @param metadataURI IPFS CID of the metadata JSON (without ipfs:// prefix).
+    /// @param imageURI IPFS CID of the underlying image asset.
+    event ArtMetadataSet(uint256 indexed tokenId, string metadataURI, string imageURI, string prompt);
 
     /// @dev Emitted when the ArtGenerator contract address is updated.
     event ArtGeneratorUpdated(address newArtGenerator);
@@ -593,11 +599,13 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
      *      Only callable by the ArtGenerator contract.
      *      Can only be called once per token (art cannot be overwritten).
      * @param tokenId The unique identifier of the character.
-     * @param imageURI The IPFS URI of the generated art.
+     * @param metadataURI The IPFS CID of the generated metadata JSON (without ipfs://).
+     * @param imageURI The IPFS CID of the underlying image asset (without ipfs://).
      * @param prompt The AI prompt used for generation.
      */
     function setArtMetadata(
         uint256 tokenId,
+        string memory metadataURI,
         string memory imageURI,
         string memory prompt
     ) external {
@@ -606,13 +614,14 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         require(!artMetadata[tokenId].isGenerated, "Art already generated");
 
         artMetadata[tokenId] = ArtMetadata({
+            metadataURI: metadataURI,
             imageURI: imageURI,
             generatedAt: block.timestamp,
             isGenerated: true,
             aiPrompt: prompt
         });
 
-        emit ArtMetadataSet(tokenId, imageURI, prompt);
+        emit ArtMetadataSet(tokenId, metadataURI, imageURI, prompt);
     }
 
     /**
@@ -630,15 +639,18 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
      * @dev See {IERC721Metadata-tokenURI}.
      *      Returns IPFS metadata URI if AI art is generated,
      *      otherwise returns base64-encoded default metadata JSON.
+     *
+     *      When art is generated, this always returns the URI of the **metadata JSON**.
+     *      The JSON's `image` field points to the actual image IPFS hash.
      */
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "Token does not exist");
 
         if (artMetadata[tokenId].isGenerated) {
-            // Return IPFS metadata URI
+            // Return IPFS metadata URI (metadataURI is the CID, without ipfs://)
             return string(abi.encodePacked(
                 "ipfs://",
-                artMetadata[tokenId].imageURI
+                artMetadata[tokenId].metadataURI
             ));
         } else {
             // Return placeholder/default metadata
