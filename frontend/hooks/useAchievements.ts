@@ -2,12 +2,9 @@
 
 import { useMemo } from 'react';
 import { useAccount, useReadContract } from 'wagmi';
-import { parseAbi } from 'viem';
+import { AchievementTrackerAbiViem } from '../../shared/abi';
 
-export const achievementAbi = parseAbi([
-  "function getPlayerAchievements(address player) external view returns (uint256[] memory)",
-  "function getProgress(address player, uint256 achievementId) external view returns (uint256 current, uint256 required, bool completed)"
-]);
+export const achievementAbi = AchievementTrackerAbiViem;
 
 export function useAchievements(playerAddress?: `0x${string}`) {
   const { address: connectedAddress } = useAccount();

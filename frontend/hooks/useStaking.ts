@@ -1,15 +1,9 @@
 'use client';
 
 import { useAccount, useReadContract, useWriteContract } from 'wagmi';
-import { parseAbi } from 'viem';
+import { CharacterStakingAbiViem } from '../../shared/abi';
 
-export const stakingAbi = parseAbi([
-    "function stake(uint256 tokenId) external",
-    "function unstake(uint256 tokenId) external",
-    "function claimRewards(uint256 tokenId) external",
-    "function calculateRewards(address account, uint256 tokenId) external view returns (uint256)",
-    "function getStakedTokens(address account) external view returns (uint256[] memory)"
-]);
+export const stakingAbi = CharacterStakingAbiViem;
 
 export function useStaking() {
     const { address } = useAccount();

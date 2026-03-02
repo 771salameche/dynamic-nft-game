@@ -1,16 +1,29 @@
 'use client';
 
 import { useAccount, useReadContract } from 'wagmi';
-import { parseAbi, formatEther } from 'viem';
+import { formatEther } from 'viem';
 import { motion } from 'framer-motion';
+import { SmartQuestEngineAbiViem } from '../../shared/abi';
 
-const SMART_QUEST_ENGINE_ABI = parseAbi([
-    'function getQuestHistory(address player) view returns (uint256[])',
-    'function quests(uint256 questId) view returns (tuple(uint256 questId, address player, string description, string aiExplanation, uint8 questType, uint8 difficulty, uint256 xpReward, uint256 tokenReward, uint256 createdAt, uint256 expiresAt, bool completed, bool claimed))',
-]);
+const SMART_QUEST_ENGINE_ABI = SmartQuestEngineAbiViem;
 
-const QUEST_TYPES = ['Breeding', 'Staking', 'Leveling', 'Social', 'Collection'];
-const DIFFICULTIES = ['Easy', 'Medium', 'Hard', 'Expert'];
+const QUEST_TYPES = ['Breeding', 'Staking', 'Leveling', 'Social', 'Collection'] as const;
+const DIFFICULTIES = ['Easy', 'Medium', 'Hard', 'Expert'] as const;
+
+type QuestResult = {
+    questId: bigint;
+    player: `0x${string}`;
+    description: string;
+    aiExplanation: string;
+    questType: number;
+    difficulty: number;
+    xpReward: bigint;
+    tokenReward: bigint;
+    createdAt: bigint;
+    expiresAt: bigint;
+    completed: boolean;
+    claimed: boolean;
+};
 
 export function QuestHistory() {
     const { address } = useAccount();
@@ -25,9 +38,11 @@ export function QuestHistory() {
         },
     });
 
+    const typedQuestIds = questIds as readonly bigint[] | undefined;
+
     if (!address) return null;
 
-    if (!questIds || questIds.length === 0) {
+    if (!typedQuestIds || typedQuestIds.length === 0) {
         return (
             <div className="text-center py-12 bg-gray-900/40 rounded-xl border border-dashed border-gray-700">
                 <span className="text-4xl grayscale opacity-50 block mb-3">📜</span>
@@ -44,7 +59,7 @@ export function QuestHistory() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[...questIds].reverse().map((questId, index) => (
+                {[...typedQuestIds].reverse().map((questId, index) => (
                     <QuestHistoryItem
                         key={questId.toString()}
                         questId={questId}
@@ -64,17 +79,19 @@ function QuestHistoryItem({ questId, index }: { questId: bigint; index: number }
         args: [questId],
     });
 
-    if (!quest) return null;
+    const typedQuest = quest as QuestResult | undefined;
+    if (!typedQuest) return null;
 
-    const questType = QUEST_TYPES[quest.questType];
-    const difficulty = DIFFICULTIES[quest.difficulty];
+    const questType = QUEST_TYPES[typedQuest.questType];
+    const difficulty = DIFFICULTIES[typedQuest.difficulty];
 
-    const difficultyColors = {
+    const difficultyColorClasses: Record<string, string> = {
         Easy: 'bg-green-500/10 text-green-400 border-green-500/20',
         Medium: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
         Hard: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
         Expert: 'bg-red-500/10 text-red-400 border-red-500/20',
-    }[difficulty as keyof typeof difficultyColors] || 'bg-gray-500/10 text-gray-400 border-gray-500/20';
+    };
+    const difficultyColors = difficultyColorClasses[difficulty] ?? 'bg-gray-500/10 text-gray-400 border-gray-500/20';
 
     return (
         <motion.div
@@ -93,14 +110,14 @@ function QuestHistoryItem({ questId, index }: { questId: bigint; index: number }
                             {difficulty}
                         </span>
                     </div>
-                    <p className="text-white font-semibold group-hover:text-purple-300 transition-colors">{quest.description}</p>
+                    <p className="text-white font-semibold group-hover:text-purple-300 transition-colors">{typedQuest.description}</p>
                 </div>
                 <div className="text-right">
                     <div className="flex items-center gap-1.5 text-green-400 text-xs font-bold mb-1">
                         <span className="text-[10px]">✨</span> SUCCESS
                     </div>
                     <p className="text-[10px] text-gray-500 font-mono tracking-tighter">
-                        {new Date(Number(quest.createdAt) * 1000).toLocaleDateString()}
+                        {new Date(Number(typedQuest.createdAt) * 1000).toLocaleDateString()}
                     </p>
                 </div>
             </div>
@@ -109,15 +126,15 @@ function QuestHistoryItem({ questId, index }: { questId: bigint; index: number }
                 <div className="flex gap-4">
                     <div className="flex items-center gap-1.5">
                         <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 shadow-[0_0_5px_rgba(250,204,21,0.5)]"></div>
-                        <span className="text-xs font-bold text-yellow-500/80">+{quest.xpReward.toString()} XP</span>
+                        <span className="text-xs font-bold text-yellow-500/80">+{typedQuest.xpReward.toString()} XP</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <div className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_5px_rgba(74,222,128,0.5)]"></div>
-                        <span className="text-xs font-bold text-green-500/80">+{formatEther(quest.tokenReward)} GAME</span>
+                        <span className="text-xs font-bold text-green-500/80">+{formatEther(typedQuest.tokenReward)} GAME</span>
                     </div>
                 </div>
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[10px] text-gray-500">ID: #{quest.questId.toString().padStart(4, '0')}</span>
+                    <span className="text-[10px] text-gray-500">ID: #{typedQuest.questId.toString().padStart(4, '0')}</span>
                 </div>
             </div>
         </motion.div>

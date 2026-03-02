@@ -92,8 +92,11 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     }
 
     /// @dev Represents AI-generated art metadata for a character.
+    /// @notice `metadataURI` is the IPFS CID of the JSON metadata.
+    ///         The JSON metadata's `image` field points to the actual image hash.
     struct ArtMetadata {
-        string imageURI;       // IPFS hash of AI-generated image (e.g., "ipfs://Qm...")
+        string metadataURI;    // IPFS hash of metadata JSON (e.g., "Qm...")
+        string imageURI;       // IPFS hash of AI-generated image (optional, for convenience)
         uint256 generatedAt;   // Timestamp when art was generated
         bool isGenerated;      // Art generation status
         string aiPrompt;       // AI prompt used (for transparency)
@@ -160,7 +163,10 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     event AutoXPEnabled(uint256 indexed tokenId);
 
     /// @dev Emitted when AI art metadata is set for a character.
-    event ArtMetadataSet(uint256 indexed tokenId, string imageURI, string prompt);
+    /// @param tokenId The character id.
+    /// @param metadataURI IPFS CID of the metadata JSON (without ipfs:// prefix).
+    /// @param imageURI IPFS CID of the underlying image asset.
+    event ArtMetadataSet(uint256 indexed tokenId, string metadataURI, string imageURI, string prompt);
 
     /// @dev Emitted when the ArtGenerator contract address is updated.
     event ArtGeneratorUpdated(address newArtGenerator);
@@ -208,6 +214,10 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     uint256 public updateInterval;
     uint256 public passiveXPAmount;
     mapping(uint256 => bool) public isAutoXPEnabled;
+    /// @dev Compact registry of tokens that have auto-XP enabled.
+    uint256[] private _autoXpTokens;
+    /// @dev Index of a tokenId in _autoXpTokens (index + 1, 0 means not present).
+    mapping(uint256 => uint256) private _autoXpIndex;
     ICharacterStaking public stakingContract;
     IAchievementTrigger public achievementTrigger;
 
@@ -216,6 +226,22 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
 
     /// @dev Address of the ArtGenerator contract authorized to set art metadata.
     address public artGeneratorContract;
+
+    /*///////////////////////////////////////////////////////////////
+                            MINT CONFIG
+    ///////////////////////////////////////////////////////////////*/
+
+    /// @dev Public mint price in wei.
+    uint256 public mintPrice;
+
+    /// @dev Flag to enable/disable public minting.
+    bool public publicMintEnabled;
+
+    /// @dev Optional maximum supply (0 = unlimited).
+    uint256 public maxSupply;
+
+    /// @dev Address that receives public mint funds.
+    address public treasury;
 
     /*///////////////////////////////////////////////////////////////
                             MODIFIERS
@@ -294,65 +320,58 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     }
 
     /*///////////////////////////////////////////////////////////////
+                            MINT CONFIG
+    ///////////////////////////////////////////////////////////////*/
+
+    /// @dev Sets public mint configuration.
+    /// @param _mintPrice Mint price in wei.
+    /// @param _publicMintEnabled Whether public minting is enabled.
+    /// @param _maxSupply Maximum supply (0 = unlimited).
+    /// @param _treasury Address that receives public mint funds.
+    function setMintConfig(
+        uint256 _mintPrice,
+        bool _publicMintEnabled,
+        uint256 _maxSupply,
+        address _treasury
+    ) external onlyOwner {
+        mintPrice = _mintPrice;
+        publicMintEnabled = _publicMintEnabled;
+        maxSupply = _maxSupply;
+        treasury = _treasury;
+    }
+
+    /*///////////////////////////////////////////////////////////////
                             MINTING
     ///////////////////////////////////////////////////////////////*/
 
-    /// @dev Mints a new character NFT to the caller.
-    ///      Only the contract owner can call this function.
-    /// @param characterClass The class of the character to mint (e.g., "Warrior", "Mage", "Rogue").
+    /// @dev Public mint function for players.
+    /// @param classType Numeric class selector (0 = Warrior, 1 = Mage, 2 = Rogue).
     /// @return The tokenId of the newly minted character.
-    function mintCharacter(string memory characterClass) public onlyOwner nonReentrant returns (uint256) {
-        bytes32 hash = keccak256(bytes(characterClass));
-        bool valid = _isValidCharacterClass(characterClass);
-        emit ClassValidationDebug(characterClass, hash, valid);
+    function mintCharacter(uint8 classType) external payable nonReentrant returns (uint256) {
+        require(publicMintEnabled, "Public mint disabled");
+        require(msg.value >= mintPrice, "Insufficient payment");
 
-        if (!valid) {
-            revert InvalidCharacterClass(characterClass);
+        if (maxSupply != 0) {
+            // _tokenIdCounter starts at 1, so current() gives next token id
+            require(_tokenIdCounter.current() <= maxSupply, "Max supply reached");
         }
 
-        uint256 newTokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
+        string memory characterClass;
+        if (classType == 0) {
+            characterClass = "Warrior";
+        } else if (classType == 1) {
+            characterClass = "Mage";
+        } else if (classType == 2) {
+            characterClass = "Rogue";
+        } else {
+            revert InvalidCharacterClass("Unknown");
+        }
 
-        _safeMint(msg.sender, newTokenId);
+        uint256 newTokenId = _mintCharacterInternal(msg.sender, characterClass, true);
 
-        _characterTraits[newTokenId] = CharacterTraits({
-            level: 1,
-            strength: 10,
-            agility: 10,
-            intelligence: 10,
-            experience: 0,
-            lastTrainedAt: uint40(block.timestamp),
-            generation: 1, // First generation characters
-            characterClass: characterClass,
-            genetics: GeneticMarkers({
-                strengthDominant: false,
-                agilityDominant: false,
-                intelligenceDominant: false,
-                hiddenStrength: 0,
-                hiddenAgility: 0,
-                hiddenIntelligence: 0
-            }),
-            mutationCount: 0,
-            breedCount: 0,
-            isFused: false
-        });
-
-        uint256 requestId = COORDINATOR.requestRandomWords(
-            keyHash,
-            s_subscriptionId,
-            requestConfirmations,
-            callbackGasLimit,
-            numWords
-        );
-
-        requestToTokenId[requestId] = newTokenId;
-        requestToMinter[requestId] = msg.sender;
-
-        emit MintRequested(requestId, newTokenId);
-        emit CharacterMinted(newTokenId, msg.sender, characterClass);
-
-        if (address(achievementTrigger) != address(0)) {
-            achievementTrigger.checkMintAchievements(msg.sender, newTokenId);
+        if (treasury != address(0) && msg.value > 0) {
+            (bool ok, ) = treasury.call{value: msg.value}("");
+            require(ok, "Treasury transfer failed");
         }
 
         return newTokenId;
@@ -580,11 +599,13 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
      *      Only callable by the ArtGenerator contract.
      *      Can only be called once per token (art cannot be overwritten).
      * @param tokenId The unique identifier of the character.
-     * @param imageURI The IPFS URI of the generated art.
+     * @param metadataURI The IPFS CID of the generated metadata JSON (without ipfs://).
+     * @param imageURI The IPFS CID of the underlying image asset (without ipfs://).
      * @param prompt The AI prompt used for generation.
      */
     function setArtMetadata(
         uint256 tokenId,
+        string memory metadataURI,
         string memory imageURI,
         string memory prompt
     ) external {
@@ -593,13 +614,14 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         require(!artMetadata[tokenId].isGenerated, "Art already generated");
 
         artMetadata[tokenId] = ArtMetadata({
+            metadataURI: metadataURI,
             imageURI: imageURI,
             generatedAt: block.timestamp,
             isGenerated: true,
             aiPrompt: prompt
         });
 
-        emit ArtMetadataSet(tokenId, imageURI, prompt);
+        emit ArtMetadataSet(tokenId, metadataURI, imageURI, prompt);
     }
 
     /**
@@ -617,15 +639,18 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
      * @dev See {IERC721Metadata-tokenURI}.
      *      Returns IPFS metadata URI if AI art is generated,
      *      otherwise returns base64-encoded default metadata JSON.
+     *
+     *      When art is generated, this always returns the URI of the **metadata JSON**.
+     *      The JSON's `image` field points to the actual image IPFS hash.
      */
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_exists(tokenId), "Token does not exist");
 
         if (artMetadata[tokenId].isGenerated) {
-            // Return IPFS metadata URI
+            // Return IPFS metadata URI (metadataURI is the CID, without ipfs://)
             return string(abi.encodePacked(
                 "ipfs://",
-                artMetadata[tokenId].imageURI
+                artMetadata[tokenId].metadataURI
             ));
         } else {
             // Return placeholder/default metadata
@@ -729,20 +754,35 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     }
 
     /// @dev Distributes passive XP to eligible characters.
+    ///      Iterates only over tokens that have auto-XP explicitly enabled.
     function _distributePassiveXP() internal {
-        uint256 lastTokenId = _tokenIdCounter.current() - 1;
-        for (uint256 i = 1; i <= lastTokenId; i++) {
-            if (_exists(i) && isAutoXPEnabled[i] && _isStaked(i)) {
-                if (_characterTraits[i].level < _MAX_LEVEL) {
-                    uint256 amount = passiveXPAmount;
-                    // Bonus based on level
-                    amount = amount.add(_characterTraits[i].level.div(10));
-                    
-                    _characterTraits[i].experience = _characterTraits[i].experience.add(amount);
-                    emit PassiveXPGranted(i, amount);
-                    _checkLevelUp(i);
-                }
+        uint256 length = _autoXpTokens.length;
+        for (uint256 i = 0; i < length; i++) {
+            uint256 tokenId = _autoXpTokens[i];
+
+            if (!_exists(tokenId)) {
+                continue;
             }
+
+            if (!isAutoXPEnabled[tokenId]) {
+                continue;
+            }
+
+            if (!_isStaked(tokenId)) {
+                continue;
+            }
+
+            if (_characterTraits[tokenId].level >= _MAX_LEVEL) {
+                continue;
+            }
+
+            uint256 amount = passiveXPAmount;
+            // Bonus based on level
+            amount = amount.add(_characterTraits[tokenId].level.div(10));
+
+            _characterTraits[tokenId].experience = _characterTraits[tokenId].experience.add(amount);
+            emit PassiveXPGranted(tokenId, amount);
+            _checkLevelUp(tokenId);
         }
     }
 
@@ -757,8 +797,46 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         if (ownerOf(tokenId) != msg.sender) {
             revert NotCharacterOwner(tokenId, msg.sender);
         }
-        isAutoXPEnabled[tokenId] = true;
-        emit AutoXPEnabled(tokenId);
+
+        if (!isAutoXPEnabled[tokenId]) {
+            isAutoXPEnabled[tokenId] = true;
+
+            // Add to registry if not already present
+            if (_autoXpIndex[tokenId] == 0) {
+                _autoXpTokens.push(tokenId);
+                _autoXpIndex[tokenId] = _autoXpTokens.length; // index + 1
+            }
+
+            emit AutoXPEnabled(tokenId);
+        }
+    }
+
+    /// @dev Disables auto-XP for a character and removes it from the registry.
+    function disableAutoXP(uint256 tokenId) external {
+        if (ownerOf(tokenId) != msg.sender) {
+            revert NotCharacterOwner(tokenId, msg.sender);
+        }
+
+        if (!isAutoXPEnabled[tokenId]) {
+            return;
+        }
+
+        isAutoXPEnabled[tokenId] = false;
+
+        uint256 indexPlusOne = _autoXpIndex[tokenId];
+        if (indexPlusOne != 0) {
+            uint256 index = indexPlusOne - 1;
+            uint256 lastIndex = _autoXpTokens.length - 1;
+
+            if (index != lastIndex) {
+                uint256 lastTokenId = _autoXpTokens[lastIndex];
+                _autoXpTokens[index] = lastTokenId;
+                _autoXpIndex[lastTokenId] = index + 1;
+            }
+
+            _autoXpTokens.pop();
+            delete _autoXpIndex[tokenId];
+        }
     }
 
     /// @dev Sets the update interval for passive XP.
@@ -788,9 +866,31 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
      * @param characterClass The class of the character.
      */
     function adminMintCharacter(
-        address to, 
+        address to,
         string memory characterClass
     ) external onlyOwner nonReentrant returns (uint256) {
+        // Admin mint bypasses achievements to preserve original semantics
+        return _mintCharacterInternal(to, characterClass, false);
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                            INTERNAL & PRIVATE
+    ///////////////////////////////////////////////////////////////*/
+
+    /// @dev Internal mint routine used by both public and admin minting.
+    function _mintCharacterInternal(
+        address to,
+        string memory characterClass,
+        bool triggerAchievements
+    ) internal returns (uint256) {
+        bytes32 hash = keccak256(bytes(characterClass));
+        bool valid = _isValidCharacterClass(characterClass);
+        emit ClassValidationDebug(characterClass, hash, valid);
+
+        if (!valid) {
+            revert InvalidCharacterClass(characterClass);
+        }
+
         uint256 newTokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
 
@@ -803,7 +903,7 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
             intelligence: 10,
             experience: 0,
             lastTrainedAt: uint40(block.timestamp),
-            generation: 1,
+            generation: 1, // First generation characters
             characterClass: characterClass,
             genetics: GeneticMarkers({
                 strengthDominant: false,
@@ -818,8 +918,6 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
             isFused: false
         });
 
-        emit CharacterMinted(newTokenId, to, characterClass);
-
         uint256 requestId = COORDINATOR.requestRandomWords(
             keyHash,
             s_subscriptionId,
@@ -832,13 +930,14 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
         requestToMinter[requestId] = to;
 
         emit MintRequested(requestId, newTokenId);
+        emit CharacterMinted(newTokenId, to, characterClass);
+
+        if (triggerAchievements && address(achievementTrigger) != address(0)) {
+            achievementTrigger.checkMintAchievements(to, newTokenId);
+        }
 
         return newTokenId;
     }
-
-    /*///////////////////////////////////////////////////////////////
-                            INTERNAL & PRIVATE
-    ///////////////////////////////////////////////////////////////*/
 
     /// @dev Internal function to check if a provided character class is valid.
     /// @param characterClass The class string to validate.
@@ -861,5 +960,5 @@ contract GameCharacter is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable
     ///////////////////////////////////////////////////////////////*/
 
     /// @dev Storage gap to ensure compatibility during upgrades.
-    uint256[31] private __gap; // Reduced from 32 to 31 to account for artGeneratorContract
+    uint256[25] private __gap; // Reduced to account for artGeneratorContract, mint config and auto-XP registry variables
 }

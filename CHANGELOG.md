@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-03-02
+
+### Added
+- **Public minting for GameCharacter:**
+  - Introduced `mintPrice`, `publicMintEnabled`, `maxSupply`, and `treasury` config in `GameCharacter.sol` with `setMintConfig`.
+  - Replaced owner-only `mintCharacter(string)` with public `mintCharacter(uint8 classType) external payable` (0 = Warrior, 1 = Mage, 2 = Rogue).
+  - Added shared internal `_mintCharacterInternal()` used by both public and admin minting, preserving VRF and achievement hooks.
+  - Added Hardhat admin task `upgrade:game-character-mint` to upgrade the proxy and configure public minting, and documented usage in the frontend README.
+
+- **Auto-XP registry for scalable Automation:**
+  - Reworked passive XP in `GameCharacter.sol` to use `_autoXpTokens` + `_autoXpIndex` registry instead of scanning all tokenIds.
+  - Updated `_distributePassiveXP()` to iterate only over auto-XP-enabled, staked, non-max-level characters.
+  - Enhanced `enableAutoXP` to register tokens in the registry and added `disableAutoXP` to remove them.
+
+- **AI art metadata clarity and backend alignment:**
+  - Split `ArtMetadata` into `metadataURI` (JSON CID) and `imageURI` (image CID); updated `ArtMetadataSet` event.
+  - Updated `setArtMetadata(tokenId, metadataURI, imageURI, prompt)` to store both CIDs and `tokenURI()` to always return the metadata URI (`ipfs://<metadataURI>`).
+  - Ensured IPFS JSON `image` field points to the actual image hash in the backend pipeline.
+  - Updated backend art fulfillment to call `fulfillArt(tokenId, metadataHash, imageHash, prompt)` with both CIDs.
+
+- **ArtGenerator security hardening:**
+  - Extended `ArtGenerator.sol` to support multiple fulfillers, pausing, off-chain signature gating, and simple rate limiting for `fulfillArt`.
+  - Introduced `artSigner` (cold key) and signature verification over payloads to protect against compromised fulfillers and replay.
+
+- **Shared ABI module and cross-layer consistency:**
+  - Added `shared/abi.ts` to centralize contract ABIs for viem (frontend) and ethers (backend).
+  - Refactored backend contract factories to use shared `*AbiEthers` definitions.
+  - Updated frontend hooks (`useGameCharacter`, `useStaking`, `useBreeding`, `useAchievements`) and quest components to use viem-parsed ABIs from `shared/abi.ts` instead of ad-hoc `parseAbi` strings.
+
+- **Backend ops & reliability for art pipeline:**
+  - Enhanced the mint listener with a reconnecting WebSocket provider, exponential backoff, and health tracking (`lastProcessedTokenId`, `lastProcessedAt`, `reconnectAttempts`).
+  - Added a `backfillArt` script to batch-generate AI art for tokens missing metadata (supports `all` and `range` modes).
+  - Added `/ops/art/health` endpoint to report listener health and count of tokens without art via on-chain scan.
+
+- **UI & UX improvements:**
+  - Fixed mint page middle class card to display a proper Mage emoji instead of a placeholder.
+  - Updated navigation to show a dynamic `Profile` link when a wallet is connected, routing to `/profile/<address>`.
+  - Aligned the `useGameCharacter` mint hook with the new `mintCharacter(uint8)` signature and on-chain mint price, and fixed TypeScript typing issues across minting, breeding, staking, and quests pages to restore reliable builds.
+
 ## [0.11.0] - 2026-02-24
 
 ### Added

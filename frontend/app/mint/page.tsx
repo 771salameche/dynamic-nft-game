@@ -18,7 +18,7 @@ export default function MintPage() {
 
   const classes = [
     { id: 0, name: 'Warrior', emoji: '🗡️', desc: 'High Strength, focuses on melee damage.' },
-    { id: 1, name: 'Mage', emoji: 'staff', desc: 'High Intelligence, casts powerful spells.' },
+    { id: 1, name: 'Mage', emoji: '🧙‍♂️', desc: 'High Intelligence, casts powerful spells.' },
     { id: 2, name: 'Rogue', emoji: '🏹', desc: 'High Agility, fast and evasive.' }
   ];
 

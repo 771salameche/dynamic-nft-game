@@ -1,6 +1,10 @@
-import { ApolloClient, InMemoryCache } from '@apollo/client';
+import { ApolloClient, InMemoryCache, HttpLink } from '@apollo/client';
+
+const subgraphUri =
+  process.env.NEXT_PUBLIC_SUBGRAPH_URL ||
+  'https://api.studio.thegraph.com/query/YOUR_SUBGRAPH_ID/dynamic-nft-game/version/latest';
 
 export const apolloClient = new ApolloClient({
-  uri: process.env.NEXT_PUBLIC_SUBGRAPH_URL || 'https://api.studio.thegraph.com/query/YOUR_SUBGRAPH_ID/dynamic-nft-game/version/latest',
+  link: new HttpLink({ uri: subgraphUri }),
   cache: new InMemoryCache(),
 });

@@ -10,3 +10,4 @@ import "./deploy/08-deploy-daily-quest";
 import "./deploy/09-deploy-loot-box";
 import "./deploy/10-deploy-token-vesting";
 // import "./deploy/deploy-all"; // deploy-all is a script, not a task definition
+import "./admin/upgrade-game-character-mint";

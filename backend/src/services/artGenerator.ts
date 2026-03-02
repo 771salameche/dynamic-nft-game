@@ -62,9 +62,11 @@ export async function processArtGeneration(tokenId: string): Promise<void> {
 
         // Step 4: Update smart contract
         console.log('4. Updating smart contract...');
+        // Pass both metadata CID and image CID to ArtGenerator, which will forward to GameCharacter.setArtMetadata
         const tx = await artGeneratorContract.fulfillArt(
             tokenId,
-            metadataHash, // Store metadata hash as imageURI
+            metadataHash,
+            imageHash,
             prompt
         );
 

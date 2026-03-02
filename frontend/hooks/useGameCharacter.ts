@@ -1,15 +1,14 @@
 'use client';
 
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther, parseAbi } from 'viem';
+import { useAccount, useReadContract, useWriteContract } from 'wagmi';
+import { parseEther } from 'viem';
+import { usePlayerStats } from './useSubgraph';
+import { GameCharacterAbiViem } from '../../shared/abi';
 
-// ABI for GameCharacter
-export const gameCharacterAbi = parseAbi([
-  "function mintCharacter(uint8 classType) external payable",
-  "function getCharacterTraits(uint256 tokenId) external view returns (uint256 level, uint256 strength, uint256 agility, uint256 intelligence, uint8 classType)",
-  "function tokenURI(uint256 tokenId) external view returns (string memory)",
-  "function tokensOfOwner(address owner) external view returns (uint256[] memory)"
-]);
+// ABI for GameCharacter used by viem
+export const gameCharacterAbi = GameCharacterAbiViem;
+
+const CLASS_NAMES = ['Warrior', 'Mage', 'Rogue'] as const;
 
 export function useGameCharacter() {
   const { address } = useAccount();
@@ -17,30 +16,35 @@ export function useGameCharacter() {
 
   const { writeContractAsync, isPending } = useWriteContract();
 
-  const mintCharacter = async (classType: number) => {
-    // Basic mint cost is 0.01 MATIC based on standard setup, adjust as needed or fetch dynamically
-    const mintCost = parseEther("0.01");
+  const mintCharacter = async (classTypeIndex: number) => {
+    const mintCost = parseEther('0.01'); // keep in sync with mintPrice on-chain
+
     return writeContractAsync({
       abi: gameCharacterAbi,
       address: contractAddress,
       functionName: 'mintCharacter',
-      args: [classType],
+      args: [classTypeIndex],
       value: mintCost,
-      account: address
+      account: address,
     });
   };
 
   const useOwnedCharacters = () => {
-    return useReadContract({
-      abi: gameCharacterAbi,
-      address: contractAddress,
-      functionName: 'tokensOfOwner',
-      args: address ? [address] : undefined,
-      query: {
-        enabled: !!address,
-      }
-    });
+    const { address } = useAccount();
+    const { data, loading, error } = usePlayerStats(address);
+
+    const tokenIds =
+      (data?.player?.characters ?? []).map((c: { tokenId: string }) => BigInt(c.tokenId)) ??
+      [];
+
+    return {
+      data: tokenIds as readonly bigint[],
+      isLoading: loading,
+      isError: !!error,
+      error,
+    };
   };
+
   return {
     mintCharacter,
     isMinting: isPending,
@@ -55,26 +59,22 @@ export function useCharacterTraits(tokenId: bigint) {
     abi: gameCharacterAbi,
     address: contractAddress,
     functionName: 'getCharacterTraits',
-    args: [tokenId]
+    args: [tokenId],
   });
 }
 
-export function useOwnedTokenIds(address: `0x${string}` | undefined) {
-  const contractAddress = process.env.NEXT_PUBLIC_GAME_CHARACTER_ADDRESS as `0x${string}`;
+export function useOwnedTokenIds(address?: `0x${string}` | undefined) {
+  const { address: connectedAddress } = useAccount();
+  const effectiveAddress = address ?? connectedAddress;
 
-  const { data: tokenIds, isLoading, error } = useReadContract({
-    abi: gameCharacterAbi,
-    address: contractAddress,
-    functionName: 'tokensOfOwner',
-    args: address ? [address] : undefined,
-    query: {
-      enabled: !!address,
-    }
-  }) as { data: readonly bigint[] | undefined, isLoading: boolean, error: any };
+  const { data, loading, error } = usePlayerStats(effectiveAddress);
+
+  const tokenIds =
+    (data?.player?.characters ?? []).map((c: { tokenId: string }) => BigInt(c.tokenId)) ?? [];
 
   return {
-    tokenIds: tokenIds || [],
-    isLoading,
-    error
+    tokenIds,
+    isLoading: loading,
+    error,
   };
 }

@@ -122,7 +122,7 @@ export default function ProfilePage() {
             
             {tokenIds.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {tokenIds.map(id => (
+                {tokenIds.map((id: bigint) => (
                   <CharacterCard key={id.toString()} tokenId={id} showActions />
                 ))}
               </div>
