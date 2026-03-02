@@ -11,9 +11,9 @@ import express, { Request, Response, NextFunction } from 'express';
 import { ethers } from 'ethers';
 import { config } from './config/env';
 import { processArtGeneration, isArtGenerated } from './services/artGenerator';
-import { startMintListener } from './listeners/mintListener';
+import { startMintListener, getMintListenerHealth } from './listeners/mintListener';
 import { startQuestListener } from './listeners/questListener';
-import { getSmartQuestContract, getProvider } from './config/contracts';
+import { getSmartQuestContract, getProvider, getGameCharacterContract } from './config/contracts';
 import { logger } from './utils/logger';
 
 const LOG_CTX = 'Server';
@@ -107,6 +107,60 @@ app.post('/api/art/generate', async (req: Request, res: Response) => {
     } catch (error) {
         logger.error(LOG_CTX, 'Error triggering art generation', error);
         res.status(500).json({ error: 'Failed to start art generation' });
+    }
+});
+
+/**
+ * Operational health endpoint for art pipeline.
+ * GET /ops/art/health
+ *
+ * Reports:
+ *  - WebSocket listener status
+ *  - Last processed tokenId / timestamp
+ *  - Count of tokens without art (simple on-chain scan)
+ */
+app.get('/ops/art/health', async (_req: Request, res: Response) => {
+    try {
+        const listenerHealth = getMintListenerHealth();
+
+        const provider = getProvider();
+        const gameCharacter = getGameCharacterContract(provider);
+
+        // Simple on-chain scan: count tokens with artMetadata.isGenerated == false
+        let missingArtCount = 0;
+        let totalSupply = 0;
+
+        try {
+            // totalSupply exists on the GameCharacter ERC721 implementation
+            totalSupply = Number(await (gameCharacter as any).totalSupply());
+        } catch {
+            // Fallback: estimate from tokenIdCounter if totalSupply is not available, or skip count
+            totalSupply = 0;
+        }
+
+        if (totalSupply > 0) {
+            for (let tokenId = 1; tokenId <= totalSupply; tokenId++) {
+                try {
+                    const artMeta = await (gameCharacter as any).artMetadata(tokenId);
+                    if (!artMeta.isGenerated) {
+                        missingArtCount++;
+                    }
+                } catch {
+                    // ignore missing tokens / errors
+                }
+            }
+        }
+
+        res.json({
+            listener: listenerHealth,
+            tokens: {
+                totalSupply,
+                missingArtCount,
+            },
+        });
+    } catch (error) {
+        logger.error(LOG_CTX, 'Error computing art health', error);
+        res.status(500).json({ error: 'Failed to compute art health' });
     }
 });
 
