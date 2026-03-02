@@ -1,17 +1,12 @@
 'use client';
 
 import { useAccount, useReadContract, useWriteContract } from 'wagmi';
-import { parseAbi } from 'viem';
+import { parseEther } from 'viem';
 import { usePlayerStats } from './useSubgraph';
+import { GameCharacterAbiViem } from '../../shared/abi';
 
-// ABI for GameCharacter that matches the on-chain contract
-export const gameCharacterAbi = parseAbi([
-  // Minting (owner-only, string-based class)
-  'function mintCharacter(string characterClass) external',
-
-  // Traits accessor – we omit the return type to avoid abitype tuple parsing issues
-  'function getCharacterTraits(uint256 tokenId) external view',
-]);
+// ABI for GameCharacter used by viem
+export const gameCharacterAbi = GameCharacterAbiViem;
 
 const CLASS_NAMES = ['Warrior', 'Mage', 'Rogue'] as const;
 
@@ -22,13 +17,14 @@ export function useGameCharacter() {
   const { writeContractAsync, isPending } = useWriteContract();
 
   const mintCharacter = async (classTypeIndex: number) => {
-    const characterClass = CLASS_NAMES[classTypeIndex];
+    const mintCost = parseEther('0.01'); // keep in sync with mintPrice on-chain
 
     return writeContractAsync({
       abi: gameCharacterAbi,
       address: contractAddress,
       functionName: 'mintCharacter',
-      args: [characterClass],
+      args: [classTypeIndex],
+      value: mintCost,
       account: address,
     });
   };

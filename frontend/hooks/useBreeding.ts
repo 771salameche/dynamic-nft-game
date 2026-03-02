@@ -1,11 +1,9 @@
 'use client';
 
 import { useReadContract, useWriteContract } from 'wagmi';
+import { CharacterBreedingAbiViem } from '../../shared/abi';
 
-export const breedingAbi = [
-  'function breed(uint256 parent1Id, uint256 parent2Id) external payable',
-  'function canBreed(uint256 parent1Id, uint256 parent2Id) external view returns (bool)',
-] as const;
+export const breedingAbi = CharacterBreedingAbiViem;
 
 export function useBreeding() {
   const contractAddress = process.env.NEXT_PUBLIC_CHARACTER_BREEDING_ADDRESS as `0x${string}`;
@@ -42,9 +40,7 @@ export function useBreedingHistory(tokenId: bigint) {
   const contractAddress = process.env.NEXT_PUBLIC_CHARACTER_BREEDING_ADDRESS as `0x${string}`;
 
   return useReadContract({
-    abi: [
-      'function getBreedingHistory(uint256 tokenId) external view returns (uint256[] memory)',
-    ] as const,
+    abi: CharacterBreedingAbiViem,
     address: contractAddress,
     functionName: 'getBreedingHistory',
     args: [tokenId],

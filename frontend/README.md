@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Dynamic NFT Frontend
 
-## Getting Started
+This is the Next.js 16 frontend for the Dynamic NFT Game. It connects to the on-chain `GameCharacter` contract on Polygon Amoy and lets players mint characters, stake, breed, and interact with quests/achievements.
 
-First, run the development server:
+### Configure public mint on Polygon Amoy
+
+The `GameCharacter` contract exposes a public mint function:
+
+- `mintCharacter(uint8 classType) external payable`
+  - `classType = 0` → Warrior
+  - `classType = 1` → Mage
+  - `classType = 2` → Rogue
+
+The mint price, sale toggle, max supply, and treasury are controlled on-chain via:
+
+- `setMintConfig(uint256 mintPrice, bool publicMintEnabled, uint256 maxSupply, address treasury)`
+
+#### 1. Upgrade proxy and set mint config (Hardhat task)
+
+From the repo root:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npx hardhat upgrade:game-character-mint \
+  --network amoy \
+  --proxy 0x095c03b93ceFadb99Ea93c2b0EEDc4d9B4DB1cF0 \
+  --mint-price "0.01" \
+  --max-supply 0 \
+  --treasury 0xYourTreasuryAddress
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- `--mint-price` is in MATIC (converted to wei on-chain).
+- `--max-supply 0` means unlimited supply; set a number to cap.
+- `--treasury` receives the mint funds (defaults to deployer if omitted).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+This task:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Upgrades the UUPS proxy to the latest `GameCharacter` implementation.
+- Calls `setMintConfig` with the provided values.
 
-## Learn More
+#### 2. Frontend env for Polygon Amoy
 
-To learn more about Next.js, take a look at the following resources:
+In `frontend/.env.local` make sure you point to the deployed contracts:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+NEXT_PUBLIC_GAME_CHARACTER_ADDRESS=0x095c03b93ceFadb99Ea93c2b0EEDc4d9B4DB1cF0
+NEXT_PUBLIC_STAKING_ADDRESS=0x...
+NEXT_PUBLIC_BREEDING_ADDRESS=0x...
+NEXT_PUBLIC_ACHIEVEMENT_ADDRESS=0x...
+NEXT_PUBLIC_SUBGRAPH_URL=https://api.studio.thegraph.com/query/.../dynamic-nft-game/version/latest
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The mint UI assumes a `mintPrice` of `0.01` MATIC by default (see `useGameCharacter.ts`). If you change `mintPrice` on-chain, update that constant or switch to reading `mintPrice` via `useReadContract`.
 
-## Deploy on Vercel
+### Running the frontend
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open `http://localhost:3000` and connect a wallet on Polygon Amoy to start minting.***

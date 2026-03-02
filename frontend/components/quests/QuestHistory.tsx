@@ -1,13 +1,11 @@
 'use client';
 
 import { useAccount, useReadContract } from 'wagmi';
-import { parseAbi, formatEther } from 'viem';
+import { formatEther } from 'viem';
 import { motion } from 'framer-motion';
+import { SmartQuestEngineAbiViem } from '../../shared/abi';
 
-const SMART_QUEST_ENGINE_ABI = parseAbi([
-    'function getQuestHistory(address player) view returns (uint256[])',
-    'function quests(uint256 questId) view',
-]);
+const SMART_QUEST_ENGINE_ABI = SmartQuestEngineAbiViem;
 
 const QUEST_TYPES = ['Breeding', 'Staking', 'Leveling', 'Social', 'Collection'] as const;
 const DIFFICULTIES = ['Easy', 'Medium', 'Hard', 'Expert'] as const;
