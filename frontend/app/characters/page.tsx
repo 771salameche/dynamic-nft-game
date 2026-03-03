@@ -5,12 +5,20 @@ import { useGameCharacter } from '@/hooks/useGameCharacter';
 import { CharacterCard } from '@/components/CharacterCard';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useState, useEffect } from 'react';
 
 export default function GalleryPage() {
     const { isConnected } = useAccount();
     const { useOwnedCharacters } = useGameCharacter();
     const { data: ownedTokensData, isLoading, isError } = useOwnedCharacters();
     const ownedTokens = ownedTokensData as bigint[] | undefined;
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) return null;
 
     if (!isConnected) {
         return (
@@ -26,7 +34,7 @@ export default function GalleryPage() {
             <div className="flex justify-between items-end mb-8">
                 <div>
                     <h1 className="text-4xl font-bold mb-2">My Heroes</h1>
-                    <p className="text-muted-foreground">Manage and view your dynamic NFT collection.</p>
+                    <p className="text-muted-foreground">Manage and view your Morpheum collection.</p>
                 </div>
                 <Link
                     href="/mint"

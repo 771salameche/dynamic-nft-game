@@ -16,6 +16,7 @@ export function useBreeding() {
       address: contractAddress,
       functionName: 'breed',
       args: [parent1Id, parent2Id],
+      chainId: 80002,
     });
   };
 

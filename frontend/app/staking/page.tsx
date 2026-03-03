@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount, useWaitForTransactionReceipt } from 'wagmi';
 import { useGameCharacter } from '@/hooks/useGameCharacter';
 import { useStaking } from '@/hooks/useStaking';
@@ -110,6 +110,13 @@ export default function StakingDashboard() {
 
   const { data: ownedTokens } = useOwnedCharacters();
   const { data: stakedTokens } = useStakedTokens();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
 
   if (!isConnected) {
     return (

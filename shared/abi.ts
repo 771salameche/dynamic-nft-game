@@ -65,7 +65,7 @@ export const CharacterStakingAbiViem = parseAbi([
 export const CharacterBreedingAbiViem = parseAbi([
   'function breed(uint256 parent1Id, uint256 parent2Id) external payable',
   'function canBreed(uint256 parent1Id, uint256 parent2Id) external view returns (bool)',
-  'function getBreedingHistory(uint256 tokenId) external view returns (uint256[] memory)',
+  'function getBreedingHistory(uint256 tokenId) external view',
 ]);
 
 // AchievementTracker

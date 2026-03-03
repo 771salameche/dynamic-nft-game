@@ -128,7 +128,7 @@ export default function QuestsPage() {
 
             {/* Footer Decoration */}
             <footer className="py-12 border-t border-white/5 text-center">
-                <p className="text-gray-600 text-xs tracking-widest uppercase">Dynamic NFT Game • AI Quest Prototype</p>
+                <p className="text-gray-600 text-xs tracking-widest uppercase">Morpheum • AI Quest Prototype</p>
             </footer>
         </div>
     );

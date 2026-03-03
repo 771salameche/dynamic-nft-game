@@ -8,7 +8,7 @@ import { Toaster } from 'react-hot-toast';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Dynamic NFT Game',
+  title: 'Morpheum',
   description: 'An immersive gaming ecosystem on Polygon',
 };
 

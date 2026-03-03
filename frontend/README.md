@@ -1,6 +1,6 @@
-## Dynamic NFT Frontend
+## Morpheum Frontend
 
-This is the Next.js 16 frontend for the Dynamic NFT Game. It connects to the on-chain `GameCharacter` contract on Polygon Amoy and lets players mint characters, stake, breed, and interact with quests/achievements.
+This is the Next.js 16 frontend for Morpheum. It connects to the on-chain `GameCharacter` contract on Polygon Amoy and lets players mint characters, stake, breed, and interact with quests/achievements.
 
 ### Configure public mint on Polygon Amoy
 
