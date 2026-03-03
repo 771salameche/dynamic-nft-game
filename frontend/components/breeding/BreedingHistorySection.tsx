@@ -26,10 +26,10 @@ export function BreedingHistorySection({ tokenId }: BreedingHistorySectionProps)
 
       {isLoading ? (
         <div className="h-40 bg-slate-900/50 rounded-3xl animate-pulse" />
-      ) : history && (history as BreedingPair[]).length > 0 ? (
+      ) : history && (history as any as BreedingPair[]).length > 0 ? (
         <div className="grid grid-cols-1 gap-4">
           <AnimatePresence>
-            {(history as BreedingPair[]).map((pair, i) => (
+            {(history as any as BreedingPair[]).map((pair, i) => (
               <motion.div
                 key={pair.timestamp.toString() + i}
                 initial={{ opacity: 0, x: -20 }}

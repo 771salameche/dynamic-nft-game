@@ -17,7 +17,7 @@ export function useStaking() {
             address: contractAddress,
             functionName: 'stake',
             args: [tokenId],
-            account: address
+            chainId: 80002
         });
     };
 
@@ -27,7 +27,7 @@ export function useStaking() {
             address: contractAddress,
             functionName: 'unstake',
             args: [tokenId],
-            account: address
+            chainId: 80002
         });
     };
 
@@ -37,7 +37,7 @@ export function useStaking() {
             address: contractAddress,
             functionName: 'claimRewards',
             args: [tokenId],
-            account: address
+            chainId: 80002
         });
     };
 

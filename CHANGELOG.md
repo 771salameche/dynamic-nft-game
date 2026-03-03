@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-03-03
+
+### Added
+- **Project Rebranding to Morpheum:**
+  - Updated platform name to **Morpheum** across all frontend pages and metadata.
+  - Replaced legacy logo and favicon with new **Morpheum** brand assets.
+  - Updated `appName` in Wagmi/RainbowKit configuration and project name in `package.json`.
+- **Enhanced Profile UI/UX:**
+  - Overhauled the Profile page with a high-fidelity dynamic header and "cyber-rpg" aesthetic.
+  - Implemented a custom tabbed navigation system for Gallery, Achievements, and History.
+  - Added stylized `StatCard` components with improved typography and subtle animations.
+  - Enhanced `ActivityTimeline` with refined iconography and clearer event categorization.
+  - Added a "Summon Hero" call-to-action for empty hero collections.
+
+### Fixed
+- **Hydration & Synchronization:**
+  - Resolved "Hydration Mismatch" errors across Navigation, Mint, Staking, Breeding, and Profile pages by implementing `mounted` state checks.
+  - Fixed `UnauthorizedProviderError` (4100) by disabling SSR in Wagmi and forcing explicit `chainId` (80002) for all contract write operations.
+  - Corrected account synchronization issues by removing explicit `account` parameters from `writeContractAsync` calls.
+- **Build & Compilation:**
+  - Fixed "Module not found" errors by correcting relative import paths for shared ABIs in Quest components.
+  - Resolved "Invalid ABI parameter" build error by simplifying complex return types in `shared/abi.ts` to avoid `abitype` parsing limitations.
+  - Fixed a critical parsing error in `breeding/page.tsx` caused by incomplete code placeholders.
+  - Resolved TypeScript casting mismatches in `BreedingHistorySection.tsx` using proper type assertions.
+
+## [0.13.0] - 2026-03-03
+
+### Added
+- **Project Rebranding to Morpheum:**
+  - Updated platform name to **Morpheum** across all frontend pages and metadata.
+  - Replaced legacy logo and favicon with new **Morpheum** brand assets.
+  - Updated `appName` in Wagmi/RainbowKit configuration and project name in `package.json`.
+- **Enhanced Profile UI/UX:**
+  - Overhauled the Profile page with a high-fidelity dynamic header and "cyber-rpg" aesthetic.
+  - Implemented a custom tabbed navigation system for Gallery, Achievements, and History.
+  - Added stylized `StatCard` components with improved typography and subtle animations.
+  - Enhanced `ActivityTimeline` with refined iconography and clearer event categorization.
+  - Added a "Summon Hero" call-to-action for empty hero collections.
+
+### Fixed
+- **Hydration & Synchronization:**
+  - Resolved "Hydration Mismatch" errors across Navigation, Mint, Staking, Breeding, and Profile pages by implementing `mounted` state checks.
+  - Fixed `UnauthorizedProviderError` (4100) by disabling SSR in Wagmi and forcing explicit `chainId` (80002) for all contract write operations.
+  - Corrected account synchronization issues by removing explicit `account` parameters from `writeContractAsync` calls.
+- **Build & Compilation:**
+  - Fixed "Module not found" errors by correcting relative import paths for shared ABIs in Quest components.
+  - Resolved "Invalid ABI parameter" build error by simplifying complex return types in `shared/abi.ts` to avoid `abitype` parsing limitations.
+  - Fixed a critical parsing error in `breeding/page.tsx` caused by incomplete code placeholders.
+  - Resolved TypeScript casting mismatches in `BreedingHistorySection.tsx` using proper type assertions.
+
 ## [0.12.0] - 2026-03-02
 
 ### Added

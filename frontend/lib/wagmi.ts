@@ -1,13 +1,14 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { polygonAmoy } from 'wagmi/chains';
+import { polygonAmoy, hardhat } from 'wagmi/chains';
 import { http } from 'wagmi';
 
 export const config = getDefaultConfig({
-  appName: 'Dynamic NFT Game',
+  appName: 'Morpheum',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo',
-  chains: [polygonAmoy],
+  chains: [polygonAmoy, hardhat],
   transports: {
     [polygonAmoy.id]: http(),
+    [hardhat.id]: http(),
   },
-  ssr: true,
+  ssr: false, // Disabled to prevent hydration/authorization state mismatches
 });

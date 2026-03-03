@@ -54,7 +54,7 @@ export default function CharacterDetailsPage() {
                 >
                     <div>
                         <h1 className="text-5xl font-black mb-2">Hero #{id}</h1>
-                        <p className="text-xl text-muted-foreground">Dynamic NFT dynamically shifting entirely entirely on-chain.</p>
+                        <p className="text-xl text-muted-foreground">Morpheum hero dynamically shifting entirely on-chain.</p>
                     </div>
 
                     <div className="bg-card border border-border rounded-xl p-6 shadow-sm">

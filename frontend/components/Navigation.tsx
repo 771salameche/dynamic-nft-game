@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { ConnectButton } from './web3/ConnectButton';
 import { motion } from 'framer-motion';
 import { useAccount } from 'wagmi';
+import { useState, useEffect } from 'react';
 
 const navLinks = [
     { href: '/mint', label: 'Mint' },
@@ -19,6 +21,11 @@ export function Navigation() {
     const pathname = usePathname();
     const { address, isConnected } = useAccount();
     const profileHref = address ? `/profile/${address}` : undefined;
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     return (
         <nav className="border-b border-border/40 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
@@ -27,10 +34,17 @@ export function Navigation() {
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-secondary"
-                    />
+                        className="relative w-8 h-8 rounded-full overflow-hidden"
+                    >
+                        <Image
+                            src="/assets/Logo-morpheum.svg"
+                            alt="Morpheum Logo"
+                            fill
+                            className="object-contain"
+                        />
+                    </motion.div>
                     <span className="font-bold text-xl hidden sm:inline-block bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-                        DynNFT
+                        Morpheum
                     </span>
                 </Link>
 
@@ -46,7 +60,7 @@ export function Navigation() {
                             {link.label}
                         </Link>
                     ))}
-                    {isConnected && profileHref && (
+                    {mounted && isConnected && profileHref && (
                         <Link
                             href={profileHref}
                             className={`text-sm font-medium transition-colors hover:text-primary ${
@@ -59,7 +73,7 @@ export function Navigation() {
                 </div>
 
                 <div className="flex items-center space-x-4">
-                    <ConnectButton />
+                    {mounted && <ConnectButton />}
                 </div>
             </div>
         </nav>

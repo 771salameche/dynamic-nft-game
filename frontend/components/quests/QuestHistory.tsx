@@ -3,7 +3,7 @@
 import { useAccount, useReadContract } from 'wagmi';
 import { formatEther } from 'viem';
 import { motion } from 'framer-motion';
-import { SmartQuestEngineAbiViem } from '../../shared/abi';
+import { SmartQuestEngineAbiViem } from '../../../shared/abi';
 
 const SMART_QUEST_ENGINE_ABI = SmartQuestEngineAbiViem;
 

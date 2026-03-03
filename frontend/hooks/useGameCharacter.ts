@@ -25,7 +25,7 @@ export function useGameCharacter() {
       functionName: 'mintCharacter',
       args: [classTypeIndex],
       value: mintCost,
-      account: address,
+      chainId: 80002, // Polygon Amoy
     });
   };
 

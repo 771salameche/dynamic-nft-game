@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount, useWaitForTransactionReceipt } from 'wagmi';
 import { useGameCharacter } from '@/hooks/useGameCharacter';
 import { useBreeding } from '@/hooks/useBreeding';
@@ -18,6 +18,11 @@ export default function BreedingPage() {
   const [parent1, setParent1] = useState<bigint | null>(null);
   const [parent2, setParent2] = useState<bigint | null>(null);
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { isLoading: isWaiting, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
@@ -48,6 +53,8 @@ export default function BreedingPage() {
       toast.error('Breeding failed. Check console.');
     }
   };
+
+  if (!mounted) return null;
 
   if (!isConnected) {
     return (

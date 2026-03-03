@@ -36,9 +36,9 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          Welcome to the{' '}
+          Welcome to{' '}
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">
-            Dynamic NFT Game
+            Morpheum
           </span>
         </motion.h1>
 

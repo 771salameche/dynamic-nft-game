@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAccount, useWaitForTransactionReceipt } from 'wagmi';
 import { useGameCharacter } from '@/hooks/useGameCharacter';
@@ -11,6 +11,11 @@ export default function MintPage() {
   const { mintCharacter, isMinting } = useGameCharacter();
   const [selectedClass, setSelectedClass] = useState<number | null>(null);
   const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { isLoading: isWaiting, isSuccess } = useWaitForTransactionReceipt({
     hash: txHash,
@@ -33,6 +38,8 @@ export default function MintPage() {
       toast.error('Minting failed. Check console for details.');
     }
   };
+
+  if (!mounted) return null;
 
   if (!isConnected) {
     return (

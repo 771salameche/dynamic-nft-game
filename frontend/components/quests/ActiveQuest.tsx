@@ -4,7 +4,7 @@ import { useAccount, useReadContract, useWriteContract } from 'wagmi';
 import { formatEther } from 'viem';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { SmartQuestEngineAbiViem } from '../../shared/abi';
+import { SmartQuestEngineAbiViem } from '../../../shared/abi';
 
 const SMART_QUEST_ENGINE_ABI = SmartQuestEngineAbiViem;
 
