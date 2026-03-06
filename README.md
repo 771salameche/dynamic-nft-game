@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="frontend/public/assets/Logo-morpheum.svg" alt="Morpheum Logo" width="200" height="auto" />
+  <img src="./frontend/public/assets/Logo-morpheum.svg" alt="Morpheum Logo" width="200" />
   <h1>Morpheum: Dynamic NFT Gaming Ecosystem</h1>
   <p><strong>An advanced blockchain-based game where NFT characters evolve, level up, and can be staked or bred.</strong></p>
 
